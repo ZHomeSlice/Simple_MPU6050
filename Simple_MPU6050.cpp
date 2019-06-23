@@ -150,8 +150,8 @@ void Simple_MPU6050::OverflowProtection(void) {
 */
 Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo() {
   if (!CheckForInterrupt()) return *this;
-  if (!dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) return *this;
-  if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, &sensor_timestamp);
+  if (!dmp_read_fifo(gyro, accel, quat, sensor_timestamp)) return *this;
+  if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, sensor_timestamp);
   return *this;
 }
 

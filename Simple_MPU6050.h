@@ -40,9 +40,9 @@ class Simple_MPU6050 : public I2Cdev {
     uint8_t data[16];
     uint8_t packet_length;
     uint16_t dmp_features;
-    unsigned long sensor_timestamp;
-    short gyro[3], accel[3];
-    long quat[4];
+    uint16_t  sensor_timestamp;
+    int16_t  gyro[3], accel[3];
+    int32_t  quat[4];
 
     //Startup Functins
     Simple_MPU6050(); // Constructor
