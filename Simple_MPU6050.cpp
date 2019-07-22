@@ -14,7 +14,9 @@
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has changed
 volatile uint8_t _maxPackets;
 
-
+/**
+@brief      Initialization functions
+*/
 Simple_MPU6050::Simple_MPU6050() {
 
 	SetAddress(MPU6050_DEFAULT_ADDRESS);
@@ -38,102 +40,24 @@ uint8_t  Simple_MPU6050::CheckAddress() {
 }
 
 /**
-@brief      Get Newest packet from the FIFO. FIFO Buffer will be empty awaiting for next packet
-returns 1 on success
-stops or returns 0 on fail
+@brief      Set FIFO Callback
 */
-uint8_t Simple_MPU6050::TestConnection(int Stop = 1) {
-	byte x;
-	Wire.beginTransmission(CheckAddress());
-	if(Wire.endTransmission() != 0){
-		if(Stop == 2){
-			Serial.print(F("\nNothing at Address: 0x"));
-			Serial.println(CheckAddress(), HEX);
-			return 2;
-		}
-	}
-	Serial.print("Found MPU at: 0x");
-	Serial.println(CheckAddress(), HEX);
-	WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	Serial.print(F("WhoAmI= 0x"));
-	Serial.println(WhoAmI, HEX);
-	uint16_t Device = (WhoAmI < 0x39 )? 6050:6500;
-	switch(Device){
-		case 6500:
-		if(Stop<0){
-			Serial.println("MPU6500 or MPU9250");
-			Serial.print(F("The connection to MPU was successful on: 0x"));
-			Serial.println(WhoAmI, HEX); // Bit 0 mirrors AD0 LOW HIGH state
-		}
-		break;
-		case 6050:
-		if(Stop<0){
-			Serial.println("MPU6050 or MPU9150");
-			Serial.print(F("The connection to MPU was successful on: 0x"));
-			Serial.println(WhoAmI, HEX); // Bit 0 mirrors AD0 LOW HIGH state
-		}
-		break;
-		default:
-		if (Stop > 0) {
-			Serial.println(F("\nFailed to Connect /n check connections and reset."));
-			//			while (1) {}
-		}
-		return 1;
-	}
-
-	return 0;
-}
-
 Simple_MPU6050 & Simple_MPU6050::on_FIFO(void (*CB)(int16_t *, int16_t *, int32_t *, uint32_t *)) {
 	on_FIFO_cb = CB;
 	return *this; // return Pointer to this class
 }
 
-Simple_MPU6050 & Simple_MPU6050::resetOffset() {
-Serial.println("Reset Offsets");
-	setOffset( sax_,  say_,  saz_,  sgx_,  sgy_,  sgz_);
-	return *this; // return Pointer to this class
-}
-
-Simple_MPU6050 & Simple_MPU6050::setOffset(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
-Serial.println("set Offsets");
-	sax_ = ax_;
-	say_ = ay_;
-	saz_ = az_;
-	sgx_ = gx_;
-	sgy_ = gy_;
-	sgz_ = gz_;
-	
-	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	if(WhoAmI < 0x39){
-		XA_OFFSET_H_WRITE_XA_OFFS(ax_);
-		YA_OFFSET_H_WRITE_YA_OFFS(ay_);
-		ZA_OFFSET_H_WRITE_ZA_OFFS(az_);
-	} else {
-		XA_OFFSET_H_WRITE_0x77_XA_OFFS(ax_);
-		YA_OFFSET_H_WRITE_0x77_YA_OFFS(ay_);
-		ZA_OFFSET_H_WRITE_0x77_ZA_OFFS(az_);
-	}
-
-	XG_OFFSET_H_WRITE_X_OFFS_USR(gx_);
-	YG_OFFSET_H_WRITE_Y_OFFS_USR(gy_);
-	ZG_OFFSET_H_WRITE_Z_OFFS_USR(gz_);
-	return *this;
-}
-
 /**
-@brief      Reset Fifo
+@brief      Reset funnctions
 */
 Simple_MPU6050 & Simple_MPU6050::reset_fifo() {
 	USER_CTRL_WRITE_FIFO_RST(); //   Reset FIFO module. Reset is asynchronous. This bit auto clears after one clock cycle.
 	return *this;
 }
 Simple_MPU6050 & Simple_MPU6050::full_reset_fifo(void) { // Official way to reset fifo
-	USER_CTRL_WRITE_FIFO_RST(1);
-	USER_CTRL_WRITE_DMP_RST(1);
+	USER_CTRL_WRITE_RESET_FIFO_DMP();
 	return *this;
 }
-
 
 
 /**
@@ -148,7 +72,7 @@ Simple_MPU6050 & Simple_MPU6050::DMP_InterruptEnable(uint8_t Data) {
 
 
 //***************************************************************************************
-//**********************         i2cdev wrapper functions          **********************
+//**********************      Overflow Protection functions        **********************
 //***************************************************************************************
 
 
@@ -185,6 +109,10 @@ void Simple_MPU6050::OverflowProtection(void) {
 	}
 }
 
+
+//***************************************************************************************
+//**********************              FIFO functions               **********************
+//***************************************************************************************
 /**
 @brief      Reads Newest packet from fifo then on success triggers Callback routine
 */
@@ -346,14 +274,6 @@ Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInts(uint8_t AltAddress,uint8_t regA
 
 
 
-
-
-
-
-
-
-
-
 //***************************************************************************************
 //**********************      Firmwaer Read Write Functions        **********************
 //***************************************************************************************
@@ -507,6 +427,52 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 	return *this;
 }
 
+/**
+@brief      Test to be sure we have communication to the MPU
+returns 1 on success
+stops or returns 0 on fail
+*/
+uint8_t Simple_MPU6050::TestConnection(int Stop = 1) {
+	byte x;
+	Wire.beginTransmission(CheckAddress());
+	if(Wire.endTransmission() != 0){
+		if(Stop == 2){
+			Serial.print(F("\nNothing at Address: 0x"));
+			Serial.println(CheckAddress(), HEX);
+			return 2;
+		}
+	}
+	Serial.print("Found MPU at: 0x");
+	Serial.println(CheckAddress(), HEX);
+	WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	Serial.print(F("WhoAmI= 0x"));
+	Serial.println(WhoAmI, HEX);
+	uint16_t Device = (WhoAmI < 0x39 )? 6050:6500;
+	switch(Device){
+		case 6500:
+		if(Stop<0){
+			Serial.println("MPU6500 or MPU9250");
+			Serial.print(F("The connection to MPU was successful on: 0x"));
+			Serial.println(WhoAmI, HEX); // Bit 0 mirrors AD0 LOW HIGH state
+		}
+		break;
+		case 6050:
+		if(Stop<0){
+			Serial.println("MPU6050 or MPU9150");
+			Serial.print(F("The connection to MPU was successful on: 0x"));
+			Serial.println(WhoAmI, HEX); // Bit 0 mirrors AD0 LOW HIGH state
+		}
+		break;
+		default:
+		if (Stop > 0) {
+			Serial.println(F("\nFailed to Connect /n check connections and reset."));
+			while (1) {}
+		}
+		return 1;
+	}
+
+	return 0;
+}
 
 
 //***************************************************************************************
@@ -706,6 +672,37 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 
 	}
 	SIGNAL_PATH_FULL_RESET_WRITE_RESET();
+	return *this;
+}
+Simple_MPU6050 & Simple_MPU6050::resetOffset() {
+	Serial.println("Reset Offsets");
+	setOffset( sax_,  say_,  saz_,  sgx_,  sgy_,  sgz_);
+	return *this; // return Pointer to this class
+}
+
+Simple_MPU6050 & Simple_MPU6050::setOffset(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
+	Serial.println("set Offsets");
+	sax_ = ax_;
+	say_ = ay_;
+	saz_ = az_;
+	sgx_ = gx_;
+	sgy_ = gy_;
+	sgz_ = gz_;
+	
+	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	if(WhoAmI < 0x39){
+		XA_OFFSET_H_WRITE_XA_OFFS(ax_);
+		YA_OFFSET_H_WRITE_YA_OFFS(ay_);
+		ZA_OFFSET_H_WRITE_ZA_OFFS(az_);
+		} else {
+		XA_OFFSET_H_WRITE_0x77_XA_OFFS(ax_);
+		YA_OFFSET_H_WRITE_0x77_YA_OFFS(ay_);
+		ZA_OFFSET_H_WRITE_0x77_ZA_OFFS(az_);
+	}
+
+	XG_OFFSET_H_WRITE_X_OFFS_USR(gx_);
+	YG_OFFSET_H_WRITE_Y_OFFS_USR(gy_);
+	ZG_OFFSET_H_WRITE_Z_OFFS_USR(gz_);
 	return *this;
 }
 //***************************************************************************************
