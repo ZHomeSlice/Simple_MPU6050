@@ -377,7 +377,89 @@ Simple_MPU6050 & Simple_MPU6050::read_mem(uint16_t mem_addr, uint16_t length, ui
 //***************************************************************************************
 //**********************              Setup Functions              **********************
 //***************************************************************************************
+/**
+@brief      ***EVERYTHING!*** needed to get DMP up and running!
+*/
+Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate) {
+	sax_ = ax_;
+	say_ = ay_;
+	saz_ = az_;
+	sgx_ = gx_;
+	sgy_ = gy_;
+	sgz_ = gz_;
+	
+	load_DMP_Image();
+	return *this;
+}
+#define CompassCheck(Cnt)   {uint8_t D; Serial.print(F("\n")); Serial.print(Cnt); Serial.print(F(" Read AKM Who am I: ")); Serial.print(I2Cdev::readBytes(0x0C,0,1,&D));Serial.print(F(" Value = 0x"));Serial.println(D);}
+#define PWR_MGMT_1_WRITE_DEVICE_RESET(...) MPUi2cWrite(0x6B, 1, 7, 1);delay(100);MPUi2cWrite(0x6A, 4, 3, 0b1111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
+Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
+	uint8_t val;
+	TestConnection(1);
+	Serial.println();
+	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
+	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
+	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
+	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
+	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
+	MPUi2cWriteByte(0x37, 0x80);				// 1001 0000 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
+	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
+	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
+	if(!CalibrateMode){
+		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
+	}
+	MPUi2cWriteByte(0x1B, 0x18);				// 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
+	resetOffset();	// Load Calibration offset values into MPU
+	if(CalibrateMode)return;
+	PrintActiveOffsets();
+	AKM_Init();
+	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
+	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
+	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
+	dmp_on = 1;
+	attachInterrupt(0, [] {mpuInterrupt = true;}, FALLING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
+	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
+	return *this;
+}
 
+/**
+@brief      ***EVERYTHING!*** needed to get DMP up and running! With Calibration!!!
+*/
+
+Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
+	sax_ = ax_;
+	say_ = ay_;
+	saz_ = az_;
+	sgx_ = gx_;
+	sgy_ = gy_;
+	sgz_ = gz_;
+	CalibrateMPU(10);
+}
+
+Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
+	load_DMP_Image(true);
+	CalibrateAccel(Loops);
+	CalibrateGyro(Loops);
+	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	if(WhoAmI < 0x39){
+		Serial.println(F("Found MPU6050 or MPU9150"));
+		XA_OFFSET_H_READ_XA_OFFS(&sax_);
+		YA_OFFSET_H_READ_YA_OFFS(&say_);
+		ZA_OFFSET_H_READ_ZA_OFFS(&saz_);
+		}else {
+		Serial.println(F("Found MPU6500 or MPU9250"));
+		XA_OFFSET_H_READ_0x77_XA_OFFS(&sax_);
+		YA_OFFSET_H_READ_0x77_YA_OFFS(&say_);
+		ZA_OFFSET_H_READ_0x77_ZA_OFFS(&saz_);
+	}
+	XG_OFFSET_H_READ_X_OFFS_USR(&sgx_);
+	YG_OFFSET_H_READ_Y_OFFS_USR(&sgy_);
+	ZG_OFFSET_H_READ_Z_OFFS_USR(&sgz_);
+	return *this;
+}
 
 /**
 @brief      Loads the DMP firmware.
@@ -707,84 +789,10 @@ Simple_MPU6050 & Simple_MPU6050::ConvertToRadians( float*xyz, float*ypr) {
 
 
 
-/**
-@brief      ***EVERYTHING!*** needed to get DMP up and running!
-*/
-Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate) {
-	sax_ = ax_;
-	say_ = ay_;
-	saz_ = az_;
-	sgx_ = gx_;
-	sgy_ = gy_;
-	sgz_ = gz_;
-	
-	load_DMP_Image();
-	return *this;
-}
-#define CompassCheck(Cnt)   {uint8_t D; Serial.print(F("\n")); Serial.print(Cnt); Serial.print(F(" Read AKM Who am I: ")); Serial.print(I2Cdev::readBytes(0x0C,0,1,&D));Serial.print(F(" Value = 0x"));Serial.println(D);}
-#define PWR_MGMT_1_WRITE_DEVICE_RESET(...) MPUi2cWrite(0x6B, 1, 7, 1);delay(100);MPUi2cWrite(0x6A, 4, 3, 0b1111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
-Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
-	uint8_t val;
-	TestConnection(1);
-	Serial.println();
-	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
-	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
-	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
-	MPUi2cWriteByte(0x37, 0x80);				// 1001 0000 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
-	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
-	if(!CalibrateMode){
-		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
-		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
-	}
-	MPUi2cWriteByte(0x1B, 0x18);				// 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
-	resetOffset();	// Load Calibration offset values into MPU
-	if(CalibrateMode)return;
-	PrintActiveOffsets();
-	AKM_Init();
-	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
-	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
-	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
-	dmp_on = 1;
-	attachInterrupt(0, [] {mpuInterrupt = true;}, FALLING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
-	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
-	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
-	return *this;
-}
+//***************************************************************************************
+//**********************      Helper Magnetometer Functtions       **********************
+//***************************************************************************************
 
-Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
-	sax_ = ax_;
-	say_ = ay_;
-	saz_ = az_;
-	sgx_ = gx_;
-	sgy_ = gy_;
-	sgz_ = gz_;
-	CalibrateMPU(10);
-}
-Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
-	load_DMP_Image(true);
-	CalibrateAccel(Loops);
-	CalibrateGyro(Loops);
-	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	if(WhoAmI < 0x39){
-		Serial.println(F("Found MPU6050 or MPU9150"));
-		XA_OFFSET_H_READ_XA_OFFS(&sax_);
-		YA_OFFSET_H_READ_YA_OFFS(&say_);
-		ZA_OFFSET_H_READ_ZA_OFFS(&saz_);
-		}else {
-		Serial.println(F("Found MPU6500 or MPU9250"));
-		XA_OFFSET_H_READ_0x77_XA_OFFS(&sax_);
-		YA_OFFSET_H_READ_0x77_YA_OFFS(&say_);
-		ZA_OFFSET_H_READ_0x77_ZA_OFFS(&saz_);
-	}
-	XG_OFFSET_H_READ_X_OFFS_USR(&sgx_);
-	YG_OFFSET_H_READ_Y_OFFS_USR(&sgy_);
-	ZG_OFFSET_H_READ_Z_OFFS_USR(&sgz_);
-	return *this;
-}
 
 
 
