@@ -3,12 +3,11 @@
 #include <Wire.h>
 #include <I2Cdev.h>
 #include "DMP_Image.h"
+#include "MPU_WriteMacros.h"
+#include "MPU_ReadMacros.h"
 
 #define ENABLE_MPU_OVERFLOW_PROTECTION(...) void yield(void){mpu.OverflowProtection();} // yield is called from within the delay() function 
-#ifndef OFFSETS
-#define OFFSETS      0,       0,       0,       0,       0,       0
-#define CalibrationLoops 8
-#endif
+
 
 
 class Simple_MPU6050 : public I2Cdev {
@@ -36,55 +35,90 @@ class Simple_MPU6050 : public I2Cdev {
     AccelGyro_u S;
     uint8_t buffer[14];
     uint8_t devAddr;
+	uint8_t akm_addr = 0;
+	uint8_t akm_WhoAmI;
+	uint8_t WhoAmI;
     uint8_t dmp_on;/* 1 if DMP is enabled. */
     uint8_t data[16];
     uint8_t packet_length;
     uint16_t dmp_features;
-    uint16_t  sensor_timestamp;
+    uint16_t sensor_timestamp;
     int16_t  gyro[3], accel[3];
-    int32_t  quat[4];
+    int32_t quat[4];
+    uint8_t compass_addr;
+    int16_t mag_sens_adj[3];
+    int8_t I2CReadCount; //items Read 
+    bool I2CWriteStatus; //  True False
+	int16_t sax_,say_,saz_,sgx_,sgy_,sgz_;
 
-    //Startup Functins
+    //Startup Functins MPU
     Simple_MPU6050(); // Constructor
     Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);
     void OverflowProtection(void);
-    Simple_MPU6050 & load_DMP_Image();
-    Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
+	Simple_MPU6050 & CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
+	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
+    Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
+	Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate = 1);
+	Simple_MPU6050 & resetOffset();
     Simple_MPU6050 & setOffset(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
     Simple_MPU6050 & on_FIFO(void (*CB)(int16_t *, int16_t *, int32_t *, uint32_t *));
     Simple_MPU6050 & reset_fifo();
+    Simple_MPU6050 & resetFIFO(){reset_fifo();return *this;};
+    Simple_MPU6050 & resetDMP(){USER_CTRL_WRITE_DMP_RST();return *this;};
     Simple_MPU6050 & full_reset_fifo(void); //Clears fifo and sensor paths.
     Simple_MPU6050 & DMP_InterruptEnable(uint8_t Data);
+
+    //Startup Functins AKM
+	Simple_MPU6050 & Simple_MPU6050::AKM_Init();
 
     // usage functions
     uint8_t CheckForInterrupt(void);
     Simple_MPU6050 & dmp_read_fifo(); //Overloaded Callback trigger
-    uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic Send and recieve
+    uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic Send and receive
     /* register management functions and Helper Macros:
         See MPU_ReadMacros.h and MPU_WriteMacros.h for a complete set of Register management Macros
        Class functions Macros to access Just about every needed register bit, bits, Bytes and ints ever
-       needed to minipulate the registers of the mpu.
+       needed to manipulate the registers of the MPU.
        Macros are in all CAPS for with underscores for spacing
-       for example: Lets change FIFO overflow interrupt bit to ture
+       for example: Lets change FIFO overflow interrupt bit to true
        mpu.INT_ENABLE_WRITE_FIFO_OFLOW_EN(1);
-       I can look in the pdf document under INT_ENABLE and FIFO_OFLOW_EN bit know exactly what im doing
-       the Macro preconfigures the MPUi2cWrite function with all the address and bit location and number of bits
+       I can look in the .pdf document under INT_ENABLE and FIFO_OFLOW_EN bit know exactly what i'm doing
+       the Macro reconfigures the MPUi2cWrite function with all the address and bit location and number of bits
        (0x38, 1, 4, Data) correctly handled
     */
     // using the above mentioned Helper Macros, Every register as needed down to bit level is represented in the Simple_MPU6050 class
     // register management functions
+	// uint8_t AltAddress, 
+	// Wrappered I2Cdev read functions
     Simple_MPU6050 & MPUi2cRead(uint8_t regAddr,  uint8_t length, uint8_t bitNum, uint8_t *data);
+    Simple_MPU6050 & MPUi2cRead(uint8_t AltAddress,uint8_t regAddr,  uint8_t length, uint8_t bitNum, uint8_t *data);
+    Simple_MPU6050 & MPUi2cReadByte(uint8_t regAddr,  uint8_t *Data);
+    Simple_MPU6050 & MPUi2cReadByte(uint8_t AltAddress,uint8_t regAddr, uint8_t *Data);
     Simple_MPU6050 & MPUi2cReadBytes(uint8_t regAddr, uint8_t length, uint8_t *Data);
+    Simple_MPU6050 & MPUi2cReadBytes(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t *Data);
     Simple_MPU6050 & MPUi2cReadInt(uint8_t regAddr, uint16_t *data);
+    Simple_MPU6050 & MPUi2cReadInt(uint8_t AltAddress,uint8_t regAddr, uint16_t *data);
+	Simple_MPU6050 & MPUi2cReadInts(uint8_t AltAddress,uint8_t regAddr, uint16_t size, uint16_t *Data);
     Simple_MPU6050 & MPUi2cReadInts(uint8_t regAddr, uint16_t size, uint16_t *Data);
+	// Wrappered I2Cdev write functions
     Simple_MPU6050 & MPUi2cWrite(uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t Val);
+    Simple_MPU6050 & MPUi2cWrite(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t Val);
+    Simple_MPU6050 & MPUi2cWriteByte(uint8_t regAddr,  uint8_t Val);
+    Simple_MPU6050 & MPUi2cWriteByte(uint8_t AltAddress,uint8_t regAddr,  uint8_t Val);
     Simple_MPU6050 & MPUi2cWriteBytes(uint8_t regAddr, uint8_t length, uint8_t *Data);
+    Simple_MPU6050 & MPUi2cWriteBytes(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t *Data);
     Simple_MPU6050 & MPUi2cWriteInt(uint8_t regAddr,  uint16_t Val);
+    Simple_MPU6050 & MPUi2cWriteInt(uint8_t AltAddress,uint8_t regAddr,  uint16_t Val);
     Simple_MPU6050 & MPUi2cWriteInts(uint8_t regAddr, uint16_t size,  uint16_t *data);
+    Simple_MPU6050 & MPUi2cWriteInts(uint8_t AltAddress,uint8_t regAddr, uint16_t size,  uint16_t *data);
+	int8_t ReadCnt(){return I2CReadCount;};
+	int8_t ReadStatus(){return I2CReadCount>0;};
+	bool WriteStatus(){return I2CWriteStatus;};
 
-    // helper math funcitons
+
+    // helper math functions
 
     Simple_MPU6050 & SetAccel(VectorInt16 *v, int16_t *accel);
     Simple_MPU6050 & GetQuaternion(Quaternion *q, const int32_t* qI);
@@ -104,10 +138,21 @@ class Simple_MPU6050 : public I2Cdev {
     // Default data gathering functions for program revisions
     void view_Vital_MPU_Registers();
     bool view_DMP_firmware_Instance(uint16_t  length);
-    Simple_MPU6050 & PrintActiveOffsets();
-    Simple_MPU6050 & CalibrateGyro(int Loops = 6);
-    Simple_MPU6050 & CalibrateAccel(int Loops = 6);
-    Simple_MPU6050 & PID(uint8_t ReadAddress, uint8_t SaveAddress, float kP, float kI, uint8_t Loops);
+	Simple_MPU6050 & PrintActiveOffsets(); // See the results of the Calibration
+	Simple_MPU6050 & PrintActiveOffsets(uint8_t MPU6500andMPU9250); // See the results of the Calibration
+	Simple_MPU6050 & PrintActiveOffsets_MPU6500();
+	Simple_MPU6050 & PrintActiveOffsets_MPU9250();
+
+	
+	// Calibration Routines
+	Simple_MPU6050 & CalibrateGyro(uint8_t Loops = 30); // Fine tune after setting offsets with less Loops.
+	Simple_MPU6050 & CalibrateAccel(uint8_t Loops = 30); // Fine tune after setting offsets with less Loops.
+	Simple_MPU6050 & PID(uint8_t ReadAddress, float kP, float kI, uint8_t Loops);  // Does the math
+
+	//Compass functions:
+	Simple_MPU6050 & setup_compass(byte Is_MPU9150 = 0);
+	Simple_MPU6050 & mpu_get_compass_reg_bypass(short *Data);
+	Simple_MPU6050 & mpu_get_compass_reg_External(int16_t *Data);
 };
 
 

@@ -9,10 +9,8 @@ Simple_MPU6050 mpu;
 ENABLE_MPU_OVERFLOW_PROTECTION();
 /*             _________________________________________________________*/
 //               X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro
-
-#define OFFSETS      0,       0,       0,       0,       0,       0
-//#define OFFSETS     1133,     -44,    1056,      50,       9,      20 // My Last offsets. you will want to use your own as these are only for my specific MPU6050
-//#define CalibrationLoops 2 //(Default is 8) 1 - 2 Calibration loops are great for a quick tuneup (at 100 readings each) , 6+ Loops will completely find the correct calibration offsets! 
+//#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets. 
+//       You will want to use your own as these are only for my specific MPU6050.
 /*             _________________________________________________________*/
 
 //***************************************************************************************
@@ -62,7 +60,7 @@ int ChartValues(int32_t *quat, uint16_t SpamDelay = 100) {
   }
 }
 
-//Gyro, Accel and Quaternion 
+//Gyro, Accel and Quaternion
 int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
@@ -76,12 +74,15 @@ int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDe
     Serial.printfloatx(F("Yaw")  , xyz[0], 9, 4, F(",   ")); //printfloatx is a Helper Macro that works with Serial.print that I created (See #define above)
     Serial.printfloatx(F("Pitch"), xyz[1], 9, 4, F(",   "));
     Serial.printfloatx(F("Roll") , xyz[2], 9, 4, F(",   "));
-    Serial.printfloatx(F("ax")   , accel[0], 5, 0, F(",   "));
-    Serial.printfloatx(F("ay")   , accel[1], 5, 0, F(",   "));
-    Serial.printfloatx(F("az")   , accel[2], 5, 0, F(",   "));
-    Serial.printfloatx(F("gx")   , gyro[0],  5, 0, F(",   "));
-    Serial.printfloatx(F("gy")   , gyro[1],  5, 0, F(",   "));
-    Serial.printfloatx(F("gz")   , gyro[2],  5, 0, F("\n"));
+    /*
+      Serial.printfloatx(F("ax")   , accel[0], 5, 0, F(",   "));
+      Serial.printfloatx(F("ay")   , accel[1], 5, 0, F(",   "));
+      Serial.printfloatx(F("az")   , accel[2], 5, 0, F(",   "));
+      Serial.printfloatx(F("gx")   , gyro[0],  5, 0, F(",   "));
+      Serial.printfloatx(F("gy")   , gyro[1],  5, 0, F(",   "));
+      Serial.printfloatx(F("gz")   , gyro[2],  5, 0, F("\n"));
+    */
+    Serial.println();
   }
 }
 
@@ -184,34 +185,34 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //***************************************************************************************
 void setup() {
   uint8_t val;
+  // join I2C bus (I2Cdev library doesn't do this automatically)
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+  Wire.begin();
+  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
+#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+  Fastwire::setup(400, true);
+#endif
   // initialize serial communication
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
-  //  Wire.begin();
-  Serial.println("Start: ");
-  // Lets test for connection on any address
-  mpu.SetAddress(MPU6050_ADDRESS_AD0_LOW).TestConnection(1);
-  mpu.load_DMP_Image(OFFSETS); // Does it all for you
-  Serial.print(F("Setup Complete in "));
-  Serial.print(millis());
-  Serial.println(F(" Miliseconds"));
-  Serial.println(F("If this is your first time running this program with this specific MPU6050,\n"
-  " Start by having the MPU6050 placed  stationary on a flat surface to get a proper accellerometer calibration\n"
-  " Lets get started here are the Starting and Ending Offsets\n"
-  " Place the new offsets on the #define OFFSETS... line above for quick startup"));
+  Serial.println(F("Start:"));
+#ifdef OFFSETS
+  Serial.println(F("Using Offsets"));
+  mpu.SetAddress(MPU6050_ADDRESS_AD0_LOW).load_DMP_Image(OFFSETS); // Does it all for you
 
-  mpu.PrintActiveOffsets();
-  mpu.CalibrateGyro(CalibrationLoops);
-  mpu.CalibrateAccel(CalibrationLoops);
-  mpu.PrintActiveOffsets();
+#else
+  Serial.println(F(" Since no offsets are defined we aregoing to calibrate this specific MPU6050,\n"
+                   " Start by having the MPU6050 placed stationary on a flat surface to get a proper accellerometer calibration\n"
+                   " Place the new offsets on the #define OFFSETS... line at top of program for super quick startup\n\n"
+                   " \t\t\t[Press Any Key]"));
+  while (Serial.available() && Serial.read()); // empty buffer
+  while (!Serial.available());                 // wait for data
+  while (Serial.available() && Serial.read()); // empty buffer again
+  mpu.SetAddress(MPU6050_ADDRESS_AD0_LOW).CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
+#endif
   mpu.on_FIFO(print_Values);
-  Serial.print(F("full calibration Complete in "));
-  Serial.print(millis());
-  Serial.println(F(" Miliseconds"));
 }
 
 void loop() {
   mpu.dmp_read_fifo();// Must be in loop
-
-
 }
