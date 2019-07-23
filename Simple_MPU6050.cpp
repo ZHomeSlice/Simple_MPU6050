@@ -792,17 +792,84 @@ Simple_MPU6050 & Simple_MPU6050::ConvertToRadians( float*xyz, float*ypr) {
 
 
 
-
+#define HIGH_SENS 0 // 0 = 14-BIT, 1 = 16-BIT 
 Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
+	
 	INT_PIN_CFG_WRITE_BYPASS_EN(1);
 	akm_addr = 0x0C;
 	FindAddress(akm_addr,0x0F);
 	AKM_WHOAMI_READ(akm_addr,&akm_WhoAmI);
-	if(ReadStatus()){
-		Serial.print(F("Found Magnetometer at Address: 0x0"));
-		Serial.println(akm_addr,HEX);
+	if(!ReadStatus()){
+		 Serial.print(F("Failed to Find Magnetometer"));
+		 INT_PIN_CFG_WRITE_BYPASS_EN(0);
+		 akm_addr = 0;
+		 return *this;
+	}
+	Serial.print(F("Found Magnetometer at Address: 0x0\n\n"));
+	Serial.println(akm_addr,HEX);
+	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
+	delay(1);
+	AKM_CNTL_WRITE_FUSE_ROM_ACCESS(akm_addr,0);
+	delay(1);
+	uint8_t AKMData[3];
+	AKM_ASAXYZ_READ_SENS_ADJ_XYZ(akm_addr,AKMData);
+	mag_sens_adj[0] = (long)AKMData[0] + 128;
+	mag_sens_adj[1] = (long)AKMData[1] + 128;
+	mag_sens_adj[2] = (long)AKMData[2] + 128;
 
+	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
+	delay(1);
+	INT_PIN_CFG_WRITE_BYPASS_EN(0);
+	I2C_MST_CTRL_WRITE_WAIT_FOR_ES(1);			// Set up master mode, master clock, and ES bit. 
 
-	} else 	Serial.print(F("Failed to Find Magnetometer"));
-	
+	// Slave 0 Configuration
+	// Slave 0 reads registers  0x02 ~ 0x0A
+	// 0x02			Status 1  
+	// 0x03 ~ 0x08  Measurement Data
+	// 0x09			Status 2
+	// This information is available in MPU Registers:
+	I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);			//Slave 0 reads from AKM data registers.
+	I2C_SLV0_ADDR_WRITE_I2C_ID_0(akm_addr);			//compass address
+	I2C_SLV0_REG_WRITE_I2C_SLV0_REG(AKM_REG_ST1);	//0x02 Compass reads start at this register.
+	I2C_SLV0_CTRL_WRITE_I2C_SLV0_EN(1);				// Enable slave 0, 
+	I2C_SLV0_CTRL_WRITE_I2C_SLV0_LENG(8);			// 8-byte reads.
+
+	// Slave 1 Configuration
+	// This sets the trigger to tell the AKM to get another set of data
+	I2C_SLV1_ADDR_WRITE_I2C_SLV1_RNW(0);			//Slave 0 reads from AKM data registers.
+	I2C_SLV1_ADDR_WRITE_I2C_ID_1(akm_addr);			//compass address
+	I2C_SLV1_REG_WRITE_I2C_SLV1_REG(AKM_REG_CNTL);	//0x0A AKM measurement mode register
+	I2C_SLV1_CTRL_WRITE_I2C_SLV1_EN(1);				//Enable slave 1
+	I2C_SLV1_CTRL_WRITE_I2C_SLV1_LENG(1);			//1-byte writes.
+	I2C_SLV1_DO_WRITE_I2C_SLV1_DO(AKM_SINGLE_MEASUREMENT|HIGH_SENS); //Set slave 1 data.
+
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV0_DLY_EN(1); //Trigger slave 0 and slave 1 actions at each sample.
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV1_DLY_EN(1);
+
+	if(WhoAmI < 0x39 )SELF_TEST_Y_GYRO_WRITE_I2C_MST_VDDIO(1); //For the MPU9150, the auxiliary I2C bus needs to be set to VDD.
+
+	return *this;
 }
+
+
+Simple_MPU6050 & Simple_MPU6050::mpu_set_bypass(unsigned char bypass_on){
+	if (bypass_on) {
+		USER_CTRL_WRITE_I2C_MST_EN(0);
+		delay(3);
+		INT_PIN_CFG_WRITE_ACTL(0);				//7
+		INT_PIN_CFG_WRITE_OPEN(0);				//6
+		INT_PIN_CFG_WRITE_FSYNC_INT_MODE_EN(0);	//2
+		INT_PIN_CFG_WRITE_BYPASS_EN(1);			//1
+		} else {
+		/* Enable I2C master mode if compass is being used. */
+		USER_CTRL_WRITE_I2C_MST_EN(akm_addr>0);
+		delay(3);
+		INT_PIN_CFG_WRITE_ACTL(0);				//7
+		INT_PIN_CFG_WRITE_OPEN(0);				//6
+		INT_PIN_CFG_WRITE_FSYNC_INT_MODE_EN(0);	//2
+		INT_PIN_CFG_WRITE_BYPASS_EN(0);			//1
+	}
+	return *this;
+}
+
+

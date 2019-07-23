@@ -252,5 +252,11 @@
 #define YA_OFFSET_H_READ_0x77_YA_OFFS(Data)					MPUi2cReadInt(0x7A, Data)  //   Y accelerometer offset cancellation
 #define ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data)					MPUi2cReadInt(0x7D, Data)  //   Z accelerometer offset cancellation
 
+
+// Scan i2c buss for addresses Start Address,End Limit:
+// example;
+// uint8_t Address = 0;
+// FindAddress(Address,128) // checks and increments Address until we find something then stops
+// Address now contains the address of the discovered device.
 #define FindAddress(Address,Limit)							{  uint8_t error = 4; while(1){ Wire.beginTransmission(Address);if((Wire.endTransmission() == 0)||!((Address++)%Limit)) break;}}
 #endif

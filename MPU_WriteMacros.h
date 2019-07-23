@@ -94,6 +94,7 @@
 #define I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(Data)          MPUi2cWrite(0x25, 1, 7, Data)		//   1 – Transfer is a read, 0 – Transfer is a write
 #define I2C_SLV0_ADDR_WRITE_I2C_ID_0(Data)              MPUi2cWrite(0x25, 7, 6, Data)		//   Physical address of I2C slave 0
 #define I2C_SLV0_REG_WRITE_I2C_SLV0_REG(Data)           MPUi2cWriteByte(0x26, Data)			//   I2C slave 0 register address from where to begin data transfer
+
 #define I2C_SLV0_CTRL_WRITE_I2C_SLV0_EN(Data)           MPUi2cWrite(0x27, 1, 7, Data)		//   1 – Enable reading data from this slave at the sample rate and storing data at the first available EXT_SENS_DATA register,
 																							//	which is always EXT_SENS_DATA_00 for I2C slave 0. 0 – function is disabled for this slave
 #define I2C_SLV0_CTRL_WRITE_I2C_SLV0_BYTE_SW(Data)      MPUi2cWrite(0x27, 1, 6, Data)		//   1 – Swap bytes when reading both the low and high byte of a word. Note there is nothing to swap after reading the first byte
@@ -181,6 +182,7 @@
 #define I2C_SLV1_DO_WRITE_I2C_SLV1_DO(Data)             MPUi2cWriteByte(0x64, Data)			//   Data out when slave 1 is set to write
 #define I2C_SLV2_DO_WRITE_I2C_SLV2_DO(Data)             MPUi2cWriteByte(0x65, Data)			//   Data out when slave 2 is set to write
 #define I2C_SLV3_DO_WRITE_I2C_SLV3_DO(Data)             MPUi2cWriteByte(0x66, Data)			//   Data out when slave 3 is set to write
+
 #define I2C_MST_DELAY_CTRL_WRITE_DELAY_ES_SHADOW(Data)  MPUi2cWrite(0x67, 1, 7, Data)		//   Delays shadowing of external sensor data until     ALL data is received
 #define I2C_MST_DELAY_CTRL_WRITE_I2C_SLV4_DLY_EN(Data)  MPUi2cWrite(0x67, 1, 4, Data)		//   When enabled, slave 4 will only be accessed
 #define I2C_MST_DELAY_CTRL_WRITE_I2C_SLV3_DLY_EN(Data)  MPUi2cWrite(0x67, 1, 3, Data)		//   When enabled, slave 3 will only be accessed
@@ -202,7 +204,7 @@
 #define USER_CTRL_WRITE_RESET_FIFO_DMP(...)			    MPUi2cWrite(0x6A, 3, 2, 0b1100)		//  Reset DMP and FIFO
 #define USER_CTRL_WRITE_DMP_EN(Data)                    MPUi2cWrite(0x6A, 1, 7, Data)		//   1  Enable DMP operation mode.
 #define USER_CTRL_WRITE_FIFO_EN(Data)                   MPUi2cWrite(0x6A, 1, 6, Data)		//   1  Enable FIFO operation mode. 0  Disable FIFO access from serial interface.  To disable FIFO writes by dma, use FIFO_EN register. To disable possible FIFO writes from DMP, disable the DMP.
-#define USER_CTRL_WRITE_I2C_MST_EN(Data)                MPUi2cWrite(0x6A, 1, 5, Data)		//   1  Enable the I2C Master
+#define USER_CTRL_WRITE_I2C_MST_EN(Data)                MPUi2cWrite(0x6A, 1, 5, Data)		//   1  Enable the I2C Master (BIT_AUX_IF_EN)
 #define USER_CTRL_WRITE_I2C_IF_DIS(Data)                MPUi2cWrite(0x6A, 1, 4, Data)		//   1  Disable I2C Slave module and put the serial interface in SPI mode only.
 #define USER_CTRL_WRITE_DMP_RST(...)                    MPUi2cWrite(0x6A, 1, 3, 1)			//   Reset DMP module. Reset is asynchronous. This bit auto clears after one clock cycle.
 #define USER_CTRL_WRITE_FIFO_RST(...)                   MPUi2cWrite(0x6A, 1, 2, 1)			//   Reset FIFO module. Reset is asynchronous. This bit auto clears after one clock cycle.
@@ -255,8 +257,12 @@
 
 
 
+// Magnetometer AK#### Macros:
 
 
+
+
+// Address Definitions
 #define AKM_S0_ADDR				0x25
 #define AKM_S0_REG				0x26
 #define AKM_S0_CTRL				0x27
@@ -320,21 +326,21 @@
 #define HS_14bit 0
 #define HS_16bit 1
 #define AKM_POWER_DOWN(HIGHS_SENS)											0b0000|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWrite(compass_addr,0x0A,3,4,AKM_POWER_DOWN(HIGHS_SENS)) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
+#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWrite(compass_addr,0x0A,3,4,0b0000|(HIGHS_SENS & 1)<<4) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
 #define AKM_SINGLE_MEAS_MODE(HIGHS_SENS)									0b0001|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,AKM_SINGLE_MEAS_MODE(HIGHS_SENS)) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
+#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0001|(HIGHS_SENS & 1)<<4) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
 #define AKM_SELFTEST_MODE(HIGHS_SENS)										0b1000|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWrite(compass_addr,0x0A,3,4,AKM_SELFTEST_MODE(HIGHS_SENS)) // Self-test mode is used to check if the sensor is working normally
+#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWrite(compass_addr,0x0A,3,4,0b1000|(HIGHS_SENS & 1)<<4) // Self-test mode is used to check if the sensor is working normally
 #define AKM_FUSE_ROM_ACCESS(HIGHS_SENS)										0b1111|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,AKM_FUSE_ROM_ACCESS(HIGHS_SENS)) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
+#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b1111|(HIGHS_SENS & 1)<<4) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
 
 //MPU9250 ONLY
 #define CONT_MEAS_MODE1(HIGHS_SENS)											0b0010|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,CONT_MEAS_MODE1(HIGHS_SENS)) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0010|(HIGHS_SENS & 1)<<4) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define CONT_MEAS_MODE2(HIGHS_SENS)											0b0110|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,CONT_MEAS_MODE2(HIGHS_SENS)) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0110|(HIGHS_SENS & 1)<<4) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define EXT_TRIG_MEAS_MODE(HIGHS_SENS)										0b0100|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,EXT_TRIG_MEAS_MODE(HIGHS_SENS)) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
+#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0100|(HIGHS_SENS & 1)<<4) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
 
 #define AKM_CNTL_READ_ALL(compass_addr,Data)								MPUi2cReadByte(compass_addr,0x0A,Data)
 
@@ -360,6 +366,7 @@
 #define AKM_WHOAMI_VALUE		(0x48)
 #define AKM_REG_ST1				(0x02) //ST1 Start reading this byte
 #define MAX_COMPASS_SAMPLE_RATE (100)
+#define AKM_MAX_SAMPLE_RATE		(100)
 
 #define AKM_REG_CNTL			(0x0A)
 #define AKM_REG_ASTC			(0x0C)
@@ -367,7 +374,10 @@
 #define AKM_REG_ASAY			(0x11)
 #define AKM_REG_ASAZ			(0x12)
 
-
+#define AKM_POWER_DOWN          (0x00)
+#define AKM_SINGLE_MEASUREMENT  (0x01)
+#define AKM_FUSE_ROM_ACCESS     (0x0F)
+#define AKM_MODE_SELF_TEST      (0x08)
 
 
 

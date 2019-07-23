@@ -71,7 +71,8 @@ class Simple_MPU6050 : public I2Cdev {
     Simple_MPU6050 & DMP_InterruptEnable(uint8_t Data);
 
     //Startup Functins AKM
-	Simple_MPU6050 & Simple_MPU6050::AKM_Init();
+	Simple_MPU6050 & AKM_Init();
+	Simple_MPU6050 & mpu_set_bypass(unsigned char bypass_on);
 
     // usage functions
     uint8_t CheckForInterrupt(void);
