@@ -165,6 +165,8 @@
 #define GYRO_YOUT_H_READ_GYRO_YOUT(Data)                    MPUi2cReadInt(0x45, Data)  //   Y-Axis gyroscope output
 #define GYRO_ZOUT_H_READ_GYRO_ZOUT(Data)                    MPUi2cReadInt(0x47, Data)  //   Z-Axis gyroscope output
 
+
+#define EXT_SENS_DATA_READ_EXT_SENS_DATA_ALL(Data)        MPUi2cReadBytes(0x49,(0x66-0x49), Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_00_READ_EXT_SENS_DATA_00(Data)        MPUi2cReadByte(0x49, Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_01_READ_EXT_SENS_DATA_01(Data)        MPUi2cReadByte(0x4A, Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_02_READ_EXT_SENS_DATA_02(Data)        MPUi2cReadByte(0x4B, Data)  //   Sensor data read from external I2C devices

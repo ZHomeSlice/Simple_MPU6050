@@ -6,6 +6,9 @@
 #include "MPU_ReadMacros.h"
 #include "MPU_WriteMacros.h"
 
+//#define USE_OLD_GETYAWPITCHROLL // Calculation returns different values but possibly relevant for your project Try both out 
+// OLD Yaw +- 180, Pitch and Roll +- 90 (Peaks at 90 deg then fall back to zero, shows Negative when pointing down pitch and left roll)
+// NEW Yaw +- 180, Pitch and Roll +- 180 (Continues to 180 deg then -180 back to zero, shows Negative when pointing down pitch and left roll)
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
@@ -274,6 +277,7 @@ Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInts(uint8_t AltAddress,uint8_t regA
 
 
 
+
 //***************************************************************************************
 //**********************      Firmwaer Read Write Functions        **********************
 //***************************************************************************************
@@ -504,6 +508,25 @@ void Simple_MPU6050::view_Vital_MPU_Registers() {
 	"reset_fifo();/n"));
 }
 
+#define DPRINTBIN(Num) for (uint32_t t = (1UL<< (sizeof(Num)*8)-1); t; t >>= 1) Serial.write(Num  & t ? '1' : '0'); // Prints a binary number with leading zeros (Automatic Handling)
+#define DPRINTHEX(Num) Serial.print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
+#define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
+
+void view_MPU_Startup_Registers() {
+	uint8_t val;
+	// Reset code for your convenience:
+	ShowByte(0x23);
+	ShowByte(0x1C);
+	ShowByte(0x37);
+	ShowByte(0x6B);
+	ShowByte(0x19);
+	ShowByte(0x1A);
+	ShowByte(0x70);
+	ShowByte(0x1B);
+	ShowByte(0x6A);
+	ShowByte(0x38);
+}
+
 #define A_OFFSET_H_READ_A_OFFS(Data)    MPUi2cReadInts(0x06, 3, Data)  //   X accelerometer offset cancellation
 #define XG_OFFSET_H_READ_OFFS_USR(Data) MPUi2cReadInts(0x13, 3, Data)  //   Remove DC bias from the gyro sensor Step 0.0305 dps
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
@@ -573,12 +596,12 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
-	float kP = 0.3;
-	float kI = 90;
-	if(Loops < 5){ // Fine tune Mode
-		kP *= .1;
-		kI *= .1;
-	}
+	double kP = 0.3;
+	double kI = 90;
+	float x;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+	kP *= x;
+	kI *= x;
 	PID( 0x43,  kP, kI,  Loops);
 	Serial.println();
 	return *this;
@@ -589,12 +612,12 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 */
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
-	float kP = 0.15;
-	float kI = 8;
-	if(Loops <= 10){ // Fine tune Mode
-	 kP *= .1;
-	 kI *= .1;
-	}
+	float kP = 0.3;
+	float kI = 20;
+	float x;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+	kP *= x;
+	kI *= x;
 	PID( 0x3B, kP, kI,  Loops);
 	Serial.println();
 	return *this;
@@ -615,10 +638,11 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 	Serial.write('*');
 	for (int i = 0; i < 3; i++) {
 		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, &Data); // reads 1 or more 16 bit integers (Word)
+		Reading = Data;// Convert int to float;
 		if(SaveAddress != 0x13){
 			BitZero[i] = Data & 1; // Capture Bit Zero to properly handle Accelerometer calibration
 			ITerm[i] = ((float)Data) * 8;
-			} else {
+		} else {
 			ITerm[i] = ((float)Data) * 4;
 		}
 	}
@@ -654,7 +678,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 				Serial.write('-');
 			}
 			if((eSum * ((ReadAddress == 0x3B)?.05: 1)) < 5) eSample++;// Test to see if we are really close!
-			if((eSum < 100) && (c > 20) && (eSample >= 10)) break; // We have 10 really Close Calculations Cycle to Next loop
+			if((eSum < 100) && (c > 10) && (eSample >= 10)) break; // We have 10 really Close Calculations Cycle to Next loop
 			delay(1);
 		}
 		Serial.write('.');
@@ -757,14 +781,33 @@ Simple_MPU6050 & Simple_MPU6050::GetEuler(float *data, Quaternion *q) {
 }
 
 Simple_MPU6050 & Simple_MPU6050::GetYawPitchRoll(float *data, Quaternion *q, VectorFloat *gravity) {
+#ifdef USE_OLD_GETYAWPITCHROLL
 	// yaw: (about Z axis)
-	data[0] = atan2(2 * q -> x * q -> y - 2 * q -> w * q -> z, 2 * q -> w * q -> w + 2 * q -> x * q -> x - 1);
+	data[0] = atan2(2*q -> x*q -> y - 2*q -> w*q -> z, 2*q -> w*q -> w + 2*q -> x*q -> x - 1);
 	// pitch: (nose up/down, about Y axis)
-	data[1] = atan(gravity -> x / sqrt(gravity -> y * gravity -> y + gravity -> z * gravity -> z));
+	data[1] = atan(gravity -> x / sqrt(gravity -> y*gravity -> y + gravity -> z*gravity -> z));
 	// roll: (tilt left/right, about X axis)
-	data[2] = atan(gravity -> y / sqrt(gravity -> x * gravity -> x + gravity -> z * gravity -> z));
+	data[2] = atan(gravity -> y / sqrt(gravity -> x*gravity -> x + gravity -> z*gravity -> z));
+#else
+	// yaw: (about Z axis)
+	data[0] = atan2(2*q -> x*q -> y - 2*q -> w*q -> z, 2*q -> w*q -> w + 2*q -> x*q -> x - 1);
+	// pitch: (nose up/down, about Y axis)
+	data[1] = atan2(gravity -> x , sqrt(gravity -> y*gravity -> y + gravity -> z*gravity -> z));
+	// roll: (tilt left/right, about X axis)
+	data[2] = atan2(gravity -> y , gravity -> z);
+	if (gravity -> z < 0) {
+		if(data[1] > 0) {
+			data[1] = PI - data[1];
+			} else {
+			data[1] = -PI - data[1];
+		}
+	}
+#endif
 	return *this;
 }
+
+
+
 
 
 Simple_MPU6050 & Simple_MPU6050::ConvertToDegrees(float*ypr, float*xyz) {
@@ -782,7 +825,6 @@ Simple_MPU6050 & Simple_MPU6050::ConvertToRadians( float*xyz, float*ypr) {
 	for (int i = 0; i < 3; i++) ypr[i] = xyz[i] * degrees_to_radians;
 	return *this;
 }
-
 
 
 
