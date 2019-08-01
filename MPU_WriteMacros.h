@@ -84,12 +84,34 @@
 #define FIFO_EN_WRITE_SLV1(Data)                        MPUi2cWrite(0x23, 1, 1, Data)		//   Adds SLV1 data to FIFO
 #define FIFO_EN_WRITE_SLV0(Data)                        MPUi2cWrite(0x23, 1, 0, Data)		//   Adds SLV0 data to FIFO
 
-#define I2C_MST_CTRL_WRITE_MULT_MST_EN(Data)            MPUi2cWrite(0x24, 1, 7, Data)		//   I2C STUFF
-#define I2C_MST_CTRL_WRITE_WAIT_FOR_ES(Data)            MPUi2cWrite(0x24, 1, 6, Data)		//   I2C STUFF
-#define I2C_MST_CTRL_WRITE_SLV_3_FIFO_EN(Data)          MPUi2cWrite(0x24, 1, 5, Data)		//   I2C STUFF
-#define I2C_MST_CTRL_WRITE_I2C_MST_P_NSR(Data)          MPUi2cWrite(0x24, 1, 4, Data)		//   I2C STUFF
-#define I2C_MST_CTRL_WRITE_I2C_MST_CLK(Data)            MPUi2cWrite(0x24, 4, 3, Data)		//   I2C STUFF
 
+// Controlls the Secondayr bus to the Magnetometer
+#define I2C_MST_CTRL_WRITE_MULT_MST_EN(Data)            MPUi2cWrite(0x24, 1, 7, Data)		//   *Enables multi-master capability. When disabled, clocking to the I2C_MST_IF
+																							//   can be disabled when not in use and the logic to detect lost arbitration is disabled.
+#define I2C_MST_CTRL_WRITE_WAIT_FOR_ES(Data)            MPUi2cWrite(0x24, 1, 6, Data)		//   Delays the data ready interrupt until external sensor data is loaded. If
+																							//   I2C_MST_IF is disabled, the interrupt will still occur.
+#define I2C_MST_CTRL_WRITE_SLV_3_FIFO_EN(Data)          MPUi2cWrite(0x24, 1, 5, Data)		//   1 – write EXT_SENS_DATA registers associated to SLV_3 (as determined by
+																							//   I2C_SLV0_CTRL and I2C_SLV1_CTRL and I2C_SLV2_CTRL) to the FIFO at the sample rate;
+																							//   0 – function is disabled
+#define I2C_MST_CTRL_WRITE_I2C_MST_P_NSR(Data)          MPUi2cWrite(0x24, 1, 4, Data)		//   This bit controls the I2C Master’s transition from one slave read to the next
+																							//   slave read. If 0, there is a restart between reads. If 1, there is a stop between reads.
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK(Data)            MPUi2cWrite(0x24, 4, 3, Data)		//   I2C_MST_CLK is a 4 bit unsigned value which configures a divider on the MPU9250 internal 8MHz clock. 																							//   It sets the I2C master clock speed according to the following table:#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_348(...)         MPUi2cWrite(0x24, 4, 3, 0)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_333(...)         MPUi2cWrite(0x24, 4, 3, 1)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_320(...)         MPUi2cWrite(0x24, 4, 3, 2)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_308(...)         MPUi2cWrite(0x24, 4, 3, 3)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_296(...)         MPUi2cWrite(0x24, 4, 3, 4)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_286(...)         MPUi2cWrite(0x24, 4, 3, 5)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_276(...)         MPUi2cWrite(0x24, 4, 3, 6)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_267(...)         MPUi2cWrite(0x24, 4, 3, 7)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_258(...)         MPUi2cWrite(0x24, 4, 3, 8)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_500(...)         MPUi2cWrite(0x24, 4, 3, 9)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_471(...)         MPUi2cWrite(0x24, 4, 3, 10)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_444(...)         MPUi2cWrite(0x24, 4, 3, 11)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_421(...)         MPUi2cWrite(0x24, 4, 3, 12)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_400(...)         MPUi2cWrite(0x24, 4, 3, 13)			//   * 13 400 kHz 
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_381(...)         MPUi2cWrite(0x24, 4, 3, 14)
+#define I2C_MST_CTRL_WRITE_I2C_MST_CLK_364(...)         MPUi2cWrite(0x24, 4, 3, 15) 
+
 // I2C Slave 0
 #define I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(Data)          MPUi2cWrite(0x25, 1, 7, Data)		//   1 – Transfer is a read, 0 – Transfer is a write
 #define I2C_SLV0_ADDR_WRITE_I2C_ID_0(Data)              MPUi2cWrite(0x25, 7, 6, Data)		//   Physical address of I2C slave 0
@@ -309,6 +331,7 @@
 #define AKM_ST1_READ_DATA_READY(compass_addr, Data)			MPUi2cRead(compass_addr,0x02,1,0,Data)	//BIT 0 DRDY bit turns to “1” when data is ready in single measurement mode or self-test mode. It returns to “0” when any one of ST2 register or measurement data register (HXL to HZH) is read.
 #define AKM_ST1_READ_DATA_OVERRUN(compass_addr, Data)		MPUi2cRead(compass_addr,0x02,1,1,Data)	//BIT 1 mpu9250 ONLY DOR bit turns to “1” when data has been skipped in continuous measurement mode or external trigger measurement mode. It returns to “0” when any one of ST2 register or measurement data register (HXL~HZH) is read.
 
+#define AKM_DATA_READ_RAW_COMPASS_DATA(compass_addr, Data)	MPUi2cReadBytes(compass_addr,0x03,6,Data) // Read the six raw data and ST2 registers sequentially into data array
 #define SwapBytes(Data)										{int8_t L = Data>>8; Data = Data<<8; Data |= L;}
 #define AKM_DATA_READ_RAW_COMPASS_SWAP(compass_addr, Data)	MPUi2cReadInts(compass_addr,0x03,3,Data);SwapBytes(Data[0]);SwapBytes(Data[1]);SwapBytes(Data[2]) //Read 8Bytes of Data
 #define AKM_DATA_READ_RAW_COMPASS(compass_addr, Data)		MPUi2cReadInts(compass_addr,0x03,3,Data) //Read 8Bytes of Data
@@ -326,25 +349,25 @@
 #define HS_14bit 0
 #define HS_16bit 1
 #define AKM_POWER_DOWN(HIGHS_SENS)											0b0000|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWrite(compass_addr,0x0A,3,4,0b0000|(HIGHS_SENS & 1)<<4) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
+#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWrite(compass_addr,0x0A,3,4,0b0000|((HIGHS_SENS & 1)<<4)) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
 #define AKM_SINGLE_MEAS_MODE(HIGHS_SENS)									0b0001|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0001|(HIGHS_SENS & 1)<<4) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
+#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0001|((HIGHS_SENS & 1)<<4)) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
 #define AKM_SELFTEST_MODE(HIGHS_SENS)										0b1000|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWrite(compass_addr,0x0A,3,4,0b1000|(HIGHS_SENS & 1)<<4) // Self-test mode is used to check if the sensor is working normally
+#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWrite(compass_addr,0x0A,3,4,0b1000|((HIGHS_SENS & 1)<<4)) // Self-test mode is used to check if the sensor is working normally
 #define AKM_FUSE_ROM_ACCESS(HIGHS_SENS)										0b1111|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b1111|(HIGHS_SENS & 1)<<4) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
+#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b1111|((HIGHS_SENS & 1)<<4)) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
 
 //MPU9250 ONLY
 #define CONT_MEAS_MODE1(HIGHS_SENS)											0b0010|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0010|(HIGHS_SENS & 1)<<4) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0010|((HIGHS_SENS & 1)<<4)) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define CONT_MEAS_MODE2(HIGHS_SENS)											0b0110|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0110|(HIGHS_SENS & 1)<<4) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0110|((HIGHS_SENS & 1)<<4)) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define EXT_TRIG_MEAS_MODE(HIGHS_SENS)										0b0100|(HIGHS_SENS & 1)<<4
-#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0100|(HIGHS_SENS & 1)<<4) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
+#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,0b0100|((HIGHS_SENS & 1)<<4)) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
 
 #define AKM_CNTL_READ_ALL(compass_addr,Data)								MPUi2cReadByte(compass_addr,0x0A,Data)
 
-
+#define AKM_SOFT_RESET(compass_addr)								MPUi2cReadByte(compass_addr,0x0B,1)
 
 
 #define AKM_ASTC_WRITE_GEN_MAG_FIELD(compass_addr, Data)		MPUi2cWrite(compass_addr,0x0C,1,6,1) //Generate magnetic field for self-test
@@ -365,6 +388,7 @@
 
 #define AKM_WHOAMI_VALUE		(0x48)
 #define AKM_REG_ST1				(0x02) //ST1 Start reading this byte
+#define AKM_XOUT_L				(0x03) // Starting data register
 #define MAX_COMPASS_SAMPLE_RATE (100)
 #define AKM_MAX_SAMPLE_RATE		(100)
 

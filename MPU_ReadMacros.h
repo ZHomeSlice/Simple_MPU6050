@@ -64,11 +64,13 @@
 #define FIFO_EN_READ_SLV1(Data)								MPUi2cRead(0x23, 1, 1, Data)  //   Adds SLV1 data to FIFO
 #define FIFO_EN_READ_SLV0(Data)								MPUi2cRead(0x23, 1, 0, Data)  //   Adds SLV0 data to FIFO
 
+
 #define I2C_MST_CTRL_READ_MULT_MST_EN(Data)					MPUi2cRead(0x24, 1, 7, Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_WAIT_FOR_ES(Data)					MPUi2cRead(0x24, 1, 6, Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_SLV_3_FIFO_EN(Data)			    MPUi2cRead(0x24, 1, 5, Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_I2C_MST_P_NSR(Data)			    MPUi2cRead(0x24, 1, 4, Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_I2C_MST_CLK(Data)				    MPUi2cRead(0x24, 4, 3, Data)  //   I2C STUFF
+
 #define I2C_SLV0_ADDR_READ_I2C_SLV0_RNW(Data)		      	MPUi2cRead(0x25, 1, 7, Data)  //   I2C STUFF
 #define I2C_SLV0_ADDR_READ_I2C_ID_0(Data)				    MPUi2cRead(0x25, 7, 6, Data)  //   I2C STUFF
 #define I2C_SLV0_REG_READ_I2C_SLV0_REG(Data)                MPUi2cReadByte(0x26, Data)  //   I2C STUFF
@@ -77,6 +79,7 @@
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS(Data)           MPUi2cRead(0x27, 1, 5, Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_GRP(Data)               MPUi2cRead(0x27, 1, 4, Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_LENG(Data)              MPUi2cRead(0x27, 4, 3, Data)  //   I2C STUFF
+
 #define I2C_SLV1_ADDR_READ_I2C_SLV1_RNW(Data)               MPUi2cRead(0x28, 1, 7, Data)  //   I2C STUFF
 #define I2C_SLV1_ADDR_READ_I2C_ID_1(Data)                   MPUi2cRead(0x28, 7, 6, Data)  //   I2C STUFF
 #define I2C_SLV1_REG_READ_I2C_SLV1_REG(Data)                MPUi2cReadByte(0x29, Data)  //   I2C STUFF
@@ -166,7 +169,8 @@
 #define GYRO_ZOUT_H_READ_GYRO_ZOUT(Data)                    MPUi2cReadInt(0x47, Data)  //   Z-Axis gyroscope output
 
 
-#define EXT_SENS_DATA_READ_EXT_SENS_DATA_ALL(Data)        MPUi2cReadBytes(0x49,(0x66-0x49), Data)  //   Sensor data read from external I2C devices
+#define EXT_SENS_DATA_READ_LENGTH(Length,Data)			MPUi2cReadBytes(0x49,Length, Data)  //   Sensor data read from external I2C devices
+#define EXT_SENS_DATA_READ_EXT_SENS_DATA_ALL(Data)			MPUi2cReadBytes(0x49,(0x66-0x49), Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_00_READ_EXT_SENS_DATA_00(Data)        MPUi2cReadByte(0x49, Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_01_READ_EXT_SENS_DATA_01(Data)        MPUi2cReadByte(0x4A, Data)  //   Sensor data read from external I2C devices
 #define EXT_SENS_DATA_02_READ_EXT_SENS_DATA_02(Data)        MPUi2cReadByte(0x4B, Data)  //   Sensor data read from external I2C devices

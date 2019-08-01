@@ -29,7 +29,7 @@ Simple_MPU6050::Simple_MPU6050() {
 	packet_length += 6;//DMP_FEATURE_SEND_RAW_GYRO
 	packet_length += 16;//DMP_FEATURE_6X_LP_QUAT
 	*/
-	_maxPackets = 1024 / packet_length;
+	_maxPackets = floor(512 / packet_length); // MPU 9250 can only handle 512 bytes of data in the FIFO 
 }
 
 Simple_MPU6050 &  Simple_MPU6050::SetAddress(uint8_t address) {
@@ -66,7 +66,6 @@ Simple_MPU6050 & Simple_MPU6050::full_reset_fifo(void) { // Official way to rese
 /**
 @brief      Start and Stop DMP int pin triggering  //   1  Enable, 0 = Disable
 */
-#define INT_ENABLE_WRITE_RAW_DMP_INT_EN(Data) MPUi2cWrite(0x38, 1, 1, Data)  //   1  Enable DMP interrupt
 Simple_MPU6050 & Simple_MPU6050::DMP_InterruptEnable(uint8_t Data) {
 	INT_ENABLE_WRITE_RAW_DMP_INT_EN(Data);
 	dmp_on = Data;
@@ -98,7 +97,7 @@ void Simple_MPU6050::OverflowProtection(void) {
 	uint32_t Timestamp ;
 	Timestamp = millis();
 	static uint32_t spamtimer;
-	if (mpuInterrupt && (Timestamp - spamtimer) >= (30)) {
+	if ((Timestamp - spamtimer) >= 30) {
 		spamtimer = Timestamp;
 		uint16_t fifo_count;
 		int8_t Packets;
@@ -121,7 +120,9 @@ void Simple_MPU6050::OverflowProtection(void) {
 */
 Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo() {
 	if (!CheckForInterrupt()) return *this;
-	if (!dmp_read_fifo(gyro, accel, quat, sensor_timestamp)) return *this;
+	if (!dmp_read_fifo(gyro, accel, quat, sensor_timestamp)) {
+		return *this;
+	}
 	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, sensor_timestamp);
 	return *this;
 }
@@ -316,7 +317,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_
 	return *this;
 }
 #define CompassCheck(Cnt)   {uint8_t D; Serial.print(F("\n")); Serial.print(Cnt); Serial.print(F(" Read AKM Who am I: ")); Serial.print(I2Cdev::readBytes(0x0C,0,1,&D));Serial.print(F(" Value = 0x"));Serial.println(D);}
-#define PWR_MGMT_1_WRITE_DEVICE_RESET(...) MPUi2cWrite(0x6B, 1, 7, 1);delay(100);MPUi2cWrite(0x6A, 4, 3, 0b1111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
+//#define PWR_MGMT_1_WRITE_DEVICE_RESET(...) MPUi2cWrite(0x6B, 1, 7, 1);delay(100);MPUi2cWrite(0x6A, 4, 3, 0b1111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
 Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	uint8_t val;
 	TestConnection(1);
@@ -326,7 +327,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
 	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
 	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
-	MPUi2cWriteByte(0x37, 0x80);				// 1001 0000 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+	MPUi2cWriteByte(0x37, 0x32);				// 0011 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
 	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
 	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
 	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
@@ -343,7 +344,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
 	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
 	dmp_on = 1;
-	attachInterrupt(0, [] {mpuInterrupt = true;}, FALLING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+	attachInterrupt(0, [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
 	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
 	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
 	return *this;
@@ -368,7 +369,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
 	CalibrateAccel(Loops);
 	CalibrateGyro(Loops);
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	if(WhoAmI < 0x39){
+	if(WhoAmI < 0x38){
 		Serial.println(F("Found MPU6050 or MPU9150"));
 		XA_OFFSET_H_READ_XA_OFFS(&sax_);
 		YA_OFFSET_H_READ_YA_OFFS(&say_);
@@ -451,7 +452,7 @@ uint8_t Simple_MPU6050::TestConnection(int Stop = 1) {
 	WHO_AM_I_READ_WHOAMI(&WhoAmI);
 	Serial.print(F("WhoAmI= 0x"));
 	Serial.println(WhoAmI, HEX);
-	uint16_t Device = (WhoAmI < 0x39 )? 6050:6500;
+	uint16_t Device = (WhoAmI < 0x38 )? 6050:6500;
 	switch(Device){
 		case 6500:
 		if(Stop<0){
@@ -537,7 +538,7 @@ Simple_MPU6050 & Simple_MPU6050::PrintActiveOffsets( ) {
 	int16_t Data[3];
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
 	Serial.print(F("\n//              X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro\n#define OFFSETS "));
-	if(WhoAmI < 0x39)	A_OFFSET_H_READ_A_OFFS(Data);
+	if(WhoAmI < 0x38)	A_OFFSET_H_READ_A_OFFS(Data);
 	else {
 		XA_OFFSET_H_READ_0x77_XA_OFFS(Data);
 		YA_OFFSET_H_READ_0x77_YA_OFFS(Data+1);
@@ -625,7 +626,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 
 
 Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops) {
-	uint8_t SaveAddress = (ReadAddress == 0x3B)?((WhoAmI < 0x39 )? 0x06:0x77):0x13;
+	uint8_t SaveAddress = (ReadAddress == 0x3B)?((WhoAmI < 0x38 )? 0x06:0x77):0x13;
 	int16_t Data;
 	float Reading;
 	int16_t BitZero[3];
@@ -714,7 +715,7 @@ Simple_MPU6050 & Simple_MPU6050::setOffset(int16_t ax_, int16_t ay_, int16_t az_
 	sgz_ = gz_;
 	
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	if(WhoAmI < 0x39){
+	if(WhoAmI < 0x38){
 		XA_OFFSET_H_WRITE_XA_OFFS(ax_);
 		YA_OFFSET_H_WRITE_YA_OFFS(ay_);
 		ZA_OFFSET_H_WRITE_ZA_OFFS(az_);
@@ -834,21 +835,93 @@ Simple_MPU6050 & Simple_MPU6050::ConvertToRadians( float*xyz, float*ypr) {
 
 
 
-#define HIGH_SENS 0 // 0 = 14-BIT, 1 = 16-BIT 
+
 Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	
 	INT_PIN_CFG_WRITE_BYPASS_EN(1);
 	akm_addr = 0x0C;
 	FindAddress(akm_addr,0x0F);
 	AKM_WHOAMI_READ(akm_addr,&akm_WhoAmI);
+	//viewMagRegisters();
 	if(!ReadStatus()){
 		 Serial.print(F("Failed to Find Magnetometer"));
 		 INT_PIN_CFG_WRITE_BYPASS_EN(0);
 		 akm_addr = 0;
 		 return *this;
 	}
-	Serial.print(F("Found Magnetometer at Address: 0x0\n\n"));
+	Serial.print(F("Found Magnetometer at Address: 0x0"));
 	Serial.println(akm_addr,HEX);
+	Serial.println();
+	uint8_t D;
+	MPUi2cReadByte(akm_addr,0,&D);
+	Serial.print(" Device ID 0x");
+
+	AKM_SOFT_RESET(akm_addr);
+	delay(100);
+/* // currently working on this version of the code:
+	uint8_t rawData[3];  // x/y/z gyro calibration data stored here
+	//writeByte(AK8963_ADDRESS, AK8963_CNTL, 0x00); // 0x0A // Power down magnetometer
+	//I2Cdev::writeByte(0x0C,0x0A , 0x00 );
+	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
+	delay(10);
+	// writeByte(AK8963_ADDRESS, AK8963_CNTL, 0x0F); // 0x0A // Enter Fuse ROM access mode
+	//I2Cdev::writeByte(0x0C,0x0A , 0x0F );
+	AKM_CNTL_WRITE_FUSE_ROM_ACCESS(akm_addr,0);
+	delay(10);
+	//readBytes(AK8963_ADDRESS, AK8963_ASAX, 3, &rawData[0]);  // 0x10 // Read the x-, y-, and z-axis calibration values
+	//I2Cdev::readBytes(0x0C, 0x10,3,&rawData[0]); // 0x1D
+	AKM_ASAXYZ_READ_SENS_ADJ_XYZ(akm_addr,rawData);
+	mag_sens_adj_F[0] =  (float)(rawData[0] - 128) / 256. + 1.; // Return x-axis sensitivity adjustment values, etc.
+	mag_sens_adj_F[1] =  (float)(rawData[1] - 128) / 256. + 1.;
+	mag_sens_adj_F[2] =  (float)(rawData[2] - 128) / 256. + 1.;
+	mag_sens_adj[0] = mag_sens_adj_F[0];
+	mag_sens_adj[2] = mag_sens_adj_F[2];
+	mag_sens_adj[3] = mag_sens_adj_F[3];
+	// writeByte(AK8963_ADDRESS, AK8963_CNTL, 0x00); // 0x0A // Power down magnetometer
+	//I2Cdev::writeByte(0x0C,0x0A , 0x00 );
+	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
+	delay(10);
+	// Configure the magnetometer for continuous read and highest resolution
+	// set Mscale bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL register,
+	// and enable continuous mode data acquisition Mmode (bits [3:0]), 0010 for 8 Hz and 0110 for 100 Hz sample rates
+	//writeByte(AK8963_ADDRESS, AK8963_CNTL, Mscale << 4 | Mmode); // 0x0A // Set magnetometer data resolution and sample ODR
+	//I2Cdev::writeByte(0x0C,0x0A ,  (HIGH_SENS & 1) << 4 | 0x01 );// 16bit single measurement mode
+	AKM_CNTL_WRITE_SINGLE_MEAS_MODE(akm_addr,HIGH_SENS);
+	INT_PIN_CFG_WRITE_BYPASS_EN(0);
+
+	// Configure MPU I2C Secondary Bus as a Master Bus at 400khz
+	//writeByte(MPU9250_ADDRESS, I2C_MST_CTRL		  0x24, 0x1D	0B 0001 1101);       // I2C configuration STOP after each transaction, master I2C bus at 400 KHz
+	I2C_MST_CTRL_WRITE_I2C_MST_P_NSR(1);
+	I2C_MST_CTRL_WRITE_I2C_MST_CLK_400();
+	//writeByte(MPU9250_ADDRESS, I2C_MST_DELAY_CTRL 0x67, 0x81	0B 1000 0001) ; // Use blocking data retreival and enable delay for mag sample rate mismatch
+	I2C_MST_DELAY_CTRL_WRITE_DELAY_ES_SHADOW(1);
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV1_DLY_EN(1);
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV0_DLY_EN(1);
+
+	//writeByte(MPU9250_ADDRESS, I2C_SLV4_CTRL	  0x34, 0x01	0B 000 0001);      // Delay mag data retrieval to once every other accel/gyro data sample
+	I2C_SLV4_CTRL_WRITE_I2C_MST_DLY(1); // (1+I2C_MST_DLY) // Delay mag data retrieval to once every other accel/gyro data sample
+
+	// Slave 0 Retrieves the data
+	I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);			//Slave 0 reads from AKM data registers.
+	I2C_SLV0_ADDR_WRITE_I2C_ID_0(akm_addr);			//compass address
+	I2C_SLV0_REG_WRITE_I2C_SLV0_REG(AKM_XOUT_L);	//0x02 Compass reads start at this register.
+	I2C_SLV0_CTRL_WRITE_I2C_SLV0_EN(1);				// Enable slave 0,
+	I2C_SLV0_CTRL_WRITE_I2C_SLV0_LENG(7);			// 8-byte reads.
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV0_DLY_EN(1); //Trigger slave 0 and slave 1 actions at each sample.
+
+	// Slave 1 Asks for more data to be retrieved
+	I2C_SLV1_ADDR_WRITE_I2C_SLV1_RNW(0);			//Slave 0 reads from AKM data registers.
+	I2C_SLV1_ADDR_WRITE_I2C_ID_1(akm_addr);			//compass address
+	I2C_SLV1_REG_WRITE_I2C_SLV1_REG(AKM_REG_CNTL);	//0x0A AKM measurement mode register
+	I2C_SLV1_CTRL_WRITE_I2C_SLV1_EN(1);				//Enable slave 1
+	I2C_SLV1_CTRL_WRITE_I2C_SLV1_LENG(1);			//1-byte writes.
+	I2C_SLV1_DO_WRITE_I2C_SLV1_DO(AKM_SINGLE_MEASUREMENT|HIGH_SENS); //Set slave 1 data.
+	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV1_DLY_EN(1);
+
+	if(!HIGH_SENS) mRes = 10.*4912./8190.; // Proper scale to return milliGauss MFS_14BITS
+	else mRes = 10.*4912./32760.0; // Proper scale to return milliGauss MFS_16BITS
+*/
+// Directly access the Magnetometer:
 	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
 	delay(1);
 	AKM_CNTL_WRITE_FUSE_ROM_ACCESS(akm_addr,0);
@@ -860,8 +933,26 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	mag_sens_adj[2] = (long)AKMData[2] + 128;
 
 	AKM_CNTL_WRITE_POWER_DOWN(akm_addr,0);
+	delay(100);
+//	AKM_SOFT_RESET(akm_addr);
+	delay(100);
+	//AKM_CNTL_WRITE_CONT_MEAS_MODE2(akm_addr,1);
+	/*
+	I2Cdev::writeByte(0x0C,0x0A ,  1 << 4 | 0x01 );// 16bit single measurement mode 
+	while(1){viewMagRegisters();}
+	while(1){
+	  static unsigned long _ETimer;
+	  if ( millis() - _ETimer >= (100)) {
+		  _ETimer += (100);
+		  //viewMagRegisters();
+		  AKM_CNTL_WRITE_SINGLE_MEAS_MODE(akm_addr,1);
+	  }
+	}
 	delay(1);
-	INT_PIN_CFG_WRITE_BYPASS_EN(0);
+	*/
+	//INT_PIN_CFG_WRITE_BYPASS_EN(0);
+
+	/*
 	I2C_MST_CTRL_WRITE_WAIT_FOR_ES(1);			// Set up master mode, master clock, and ES bit. 
 
 	// Slave 0 Configuration
@@ -888,8 +979,20 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV0_DLY_EN(1); //Trigger slave 0 and slave 1 actions at each sample.
 	I2C_MST_DELAY_CTRL_WRITE_I2C_SLV1_DLY_EN(1);
 
-	if(WhoAmI < 0x39 )SELF_TEST_Y_GYRO_WRITE_I2C_MST_VDDIO(1); //For the MPU9150, the auxiliary I2C bus needs to be set to VDD.
+	if(WhoAmI < 0x38 )SELF_TEST_Y_GYRO_WRITE_I2C_MST_VDDIO(1); //For the MPU9150, the auxiliary I2C bus needs to be set to VDD.
+	*/
 
+		// uint8_t rawData[7];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
+		// readBytes(AK8963_ADDRESS, AK8963_XOUT_L, 7, &rawData[0]);  // Read the six raw data and ST2 registers sequentially into data array
+	//	writeByte(MPU9250_ADDRESS, I2C_SLV0_ADDR, AK8963_ADDRESS | 0x80);    // Set the I2C slave address of AK8963 and set for read.
+	//	writeByte(MPU9250_ADDRESS, I2C_SLV0_REG, AK8963_XOUT_L);             // I2C slave 0 register address from where to begin data transfer
+	//	writeByte(MPU9250_ADDRESS, I2C_SLV0_CTRL, 0x87);                     // Enable I2C and read 7 bytes
+
+
+
+//	mpu_set_bypass(1);
+//	AKM_CNTL_WRITE_CONT_MEAS_MODE2(akm_addr,HIGH_SENS);
+	delay(10);
 	return *this;
 }
 
@@ -914,4 +1017,242 @@ Simple_MPU6050 & Simple_MPU6050::mpu_set_bypass(unsigned char bypass_on){
 	return *this;
 }
 
+Simple_MPU6050 & Simple_MPU6050::readMagData(){
+    //read mag
+    I2Cdev::readBytes(0x0C, 0x03, 6, buffer);
+    mag[0] = (((int16_t)buffer[0]) << 8) | buffer[1];
+    mag[1] = (((int16_t)buffer[2]) << 8) | buffer[3];
+    mag[2] = (((int16_t)buffer[4]) << 8) | buffer[5];
+	I2Cdev::writeByte(0x0C,0x0A ,  (HIGH_SENS & 1) << 4 | 0x01 );// 16bit single measurement mode
+ //   I2Cdev::writeByte(0x0C, 0x0A, 0x01); //enable the magnetometer 14bit single measurement mode
+ #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+    Serial.printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
+    Serial.printfloatx(F("")            , mag[1],  15, 3, F(",   "));
+    Serial.printfloatx(F("")            , mag[2],  15, 3, F("\n"));
+/*
+	uint8_t rawData[6];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
+	Serial.print("$");
+	if(AKM_ST1_READ_DATA_READY(akm_addr, &TVal).TVal){	// wait for magnetometer data ready bit to be set
+		Serial.print("^");
+//  if(readByte(AK8963_ADDRESS, AK8963_ST1) & 0x01) { // wait for magnetometer data ready bit to be set
+//		readBytes(AK8963_ADDRESS, AK8963_XOUT_L, 7, &rawData[0]);  // Read the six raw data and ST2 registers sequentially into data array
+//		uint8_t c = rawData[6]; // End data read by reading ST2 register
+		if(!AKM_ST2_READ_SENSOR_OVERFLOW(akm_addr,&TVal).TVal){// Check if magnetic sensor overflow set, if not then report data}
+		Serial.print("~");
+//		if(!(c & 0x08)) { // Check if magnetic sensor overflow set, if not then report data
+//			AKM_DATA_READ_RAW_COMPASS(akm_addr,magCount);
+//			AKM_DATA_READ_RAW_COMPASS_SWAP(akm_addr,magCount);
+			AKM_DATA_READ_RAW_COMPASS_DATA(akm_addr,rawData); // Read the six raw data 
+			magCount[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;  // Turn the MSB and LSB into a signed 16-bit value
+			magCount[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  // Data stored as little Endian
+			magCount[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
+			
+			mag[0] = (float)magCount[0]*mRes*mag_sens_adj[0] - magBias[0];  // get actual magnetometer value, this depends on scale being set
+			mag[1] = (float)magCount[1]*mRes*mag_sens_adj[1] - magBias[1];
+			mag[2] = (float)magCount[2]*mRes*mag_sens_adj[2] - magBias[2];
+		}
+	}
+	//AKM_CNTL_WRITE_SINGLE_MEAS_MODE(akm_addr,HIGH_SENS);// Prep for next reading
+	*/
+	return *this;
+}
 
+#define DPRINTBIN(Num) for (uint32_t t = (1UL<< (sizeof(Num)*8)-1); t; t >>= 1) Serial.write(Num  & t ? '1' : '0'); // Prints a binary number with leading zeros (Automatic Handling)
+#define DPRINTHEX(Num) Serial.print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
+#define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
+#define ShowValue(Name, FunctionD) FunctionD; Serial.print(Name); Serial.print(" = 0x"); DPRINTHEX(D); Serial.print(" = 0B"); DPRINTBIN(D); Serial.println();
+// Work in Progress:
+Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
+    //read mag
+	uint8_t D;
+  uint8_t rawData[8];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
+/*
+  //  readBytes(AK8963_ADDRESS, AK8963_XOUT_L, 7, &rawData[0]);  // Read the six raw data and ST2 registers sequentially into data array
+ // I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);
+ // I2C_SLV0_ADDR_WRITE_I2C_ID_0(0x0C);
+  ShowValue("I2C_MST_CTRL_READ_MULT_MST_EN", I2C_MST_CTRL_READ_MULT_MST_EN(D));
+  ShowValue("I2C_MST_CTRL_READ_WAIT_FOR_ES", I2C_MST_CTRL_READ_WAIT_FOR_ES(D));
+  ShowValue("I2C_MST_CTRL_READ_SLV_3_FIFO_EN", I2C_MST_CTRL_READ_SLV_3_FIFO_EN(D));
+  ShowValue("I2C_MST_CTRL_READ_I2C_MST_P_NSR", I2C_MST_CTRL_READ_I2C_MST_P_NSR(D));
+  ShowValue("I2C_MST_CTRL_READ_I2C_MST_CLK", I2C_MST_CTRL_READ_I2C_MST_CLK(D));
+
+//  writeByte(MPU9250_ADDRESS, I2C_SLV0_ADDR, 0x0C | 0x80);    // Set the I2C slave address of AK8963 and set for read.
+ // I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);
+ // I2C_SLV0_ADDR_WRITE_I2C_ID_0(0x0C);
+  ShowValue("I2C_SLV0_ADDR_READ_I2C_SLV0_RNW", I2C_SLV0_ADDR_READ_I2C_SLV0_RNW(D));
+  ShowValue("I2C_SLV0_ADDR_READ_I2C_ID_0", I2C_SLV0_ADDR_READ_I2C_ID_0(D));
+
+
+//  writeByte(MPU9250_ADDRESS, I2C_SLV0_REG, AKM_REG_ST1);             // I2C slave 0 register address from where to begin data transfer
+//  I2C_SLV0_REG_WRITE_I2C_SLV0_REG(AKM_REG_ST1);
+  ShowValue("I2C_SLV0_REG_READ_I2C_SLV0_REG", I2C_SLV0_REG_READ_I2C_SLV0_REG(D));
+
+//  writeByte(MPU9250_ADDRESS, I2C_SLV0_CTRL, 0x88);                     // Enable I2C and read 7 bytes
+ // I2C_SLV0_CTRL_WRITE_I2C_SLV0_EN(1);
+ // I2C_SLV0_CTRL_WRITE_I2C_SLV0_LENG(8);
+  ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_EN", I2C_SLV0_CTRL_READ_I2C_SLV0_EN(D));
+  ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_BYTE_SW", I2C_SLV0_CTRL_READ_I2C_SLV0_BYTE_SW(D));
+  ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS", I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS(D));
+  ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_GRP", I2C_SLV0_CTRL_READ_I2C_SLV0_GRP(D));
+  ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_LENG", I2C_SLV0_CTRL_READ_I2C_SLV0_LENG(D));
+  */
+  delay(2);
+  //readBytes(MPU9250_ADDRESS, EXT_SENS_DATA_00, 8, &rawData[0]);        // Read the x-, y-, and z-axis calibration values
+  EXT_SENS_DATA_READ_LENGTH(8,rawData);
+  uint8_t c = rawData[7]; // End data read by reading ST2 register
+  if(!(c & 0x08)) { // Check if magnetic sensor overflow set, if not then report data
+	  mag[0] = ((int16_t)rawData[2] << 8) | rawData[1] ;  // Turn the MSB and LSB into a signed 16-bit value
+	  mag[1] = ((int16_t)rawData[4] << 8) | rawData[3] ;  // Data stored as little Endian
+	  mag[2] = ((int16_t)rawData[6] << 8) | rawData[5] ;
+  }
+  //I2Cdev::writeByte(0x0C, 0x0A, 0x01); //enable the magnetometer
+	return *this;
+}
+
+
+
+
+Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
+	uint16_t ii = 0, sample_count = 0;
+	int32_t mag_bias[3] = {0, 0, 0};
+	int16_t mag_max[3] = {-32767, -32767, -32767}, mag_min[3] = {32767, 32767, 32767};
+	
+	Serial.println("Mag Calibration: Wave device in a figure eight until done!");
+	delay(4000);
+	
+	sample_count = 64;
+	for(ii = 0; ii < sample_count; ii++) {
+		while(!AKM_ST1_READ_DATA_READY(akm_addr, &TVal).TVal) delay(5);  
+		readMagData();  // Read the mag data
+		for (int jj = 0; jj < 3; jj++) {
+			if(mag[jj] > mag_max[jj]) mag_max[jj] = mag[jj];
+			if(mag[jj] < mag_min[jj]) mag_min[jj] = mag[jj];
+		}
+		delay(135);  // at 8 Hz ODR, new mag data is available every 125 ms
+	}
+
+	//    Serial.println("mag x min/max:"); Serial.println(mag_max[0]); Serial.println(mag_min[0]);
+	//    Serial.println("mag y min/max:"); Serial.println(mag_max[1]); Serial.println(mag_min[1]);
+	//    Serial.println("mag z min/max:"); Serial.println(mag_max[2]); Serial.println(mag_min[2]);
+
+	mag_bias[0]  = (mag_max[0] + mag_min[0])/2;  // get average x mag bias in counts
+	mag_bias[1]  = (mag_max[1] + mag_min[1])/2;  // get average y mag bias in counts
+	mag_bias[2]  = (mag_max[2] + mag_min[2])/2;  // get average z mag bias in counts
+	
+	magBias[0] = (float) mag_bias[0]*mRes*mag_sens_adj[0];  // save mag biases in G for main program
+	magBias[1] = (float) mag_bias[1]*mRes*mag_sens_adj[1];
+	magBias[2] = (float) mag_bias[2]*mRes*mag_sens_adj[2];
+
+	Serial.println("Mag Calibration done!");
+	return *this;
+}
+
+Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
+	uint8_t D;
+	MPUi2cReadByte(akm_addr,0,&D);
+	Serial.print((ReadCnt())? "R ":"X ");
+	Serial.print(" Device ID 0x");
+	DPRINTHEX(D);
+	Serial.print(" 0B");
+	DPRINTBIN(D);
+	Serial.println();
+	D = 0;
+
+	while(!D){
+		MPUi2cReadByte(akm_addr,0x02,&D);
+		Serial.print((ReadCnt())? "R ":"X ");
+		Serial.print(" Status 1 = 0x");
+		DPRINTHEX(D);
+		Serial.print(" 0B");
+		DPRINTBIN(D);
+		Serial.println();
+		delay(1000);
+	}
+	Serial.println("****************");
+	for(int i = 0X03;i<=0x08;i++){
+	D = 0;
+	if((i != 0x0B) && (i != 0x0D) && (i != 0x0E))  MPUi2cReadByte(akm_addr,i,&D);
+		Serial.print((ReadCnt())? "R ":"X ");
+		Serial.print("Register = 0x");
+		DPRINTHEX(i);
+		switch(i){
+			case 0x00:
+			Serial.print(" Device ID ");
+			break;
+			case 0x01:
+			Serial.print(" Information ");
+			break;
+			case 0x02:
+			Serial.print(" Status 1 ");
+			break;
+			case 0x03:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x04:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x05:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x06:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x07:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x08:
+			Serial.print(" Measurement data ");
+			break;
+			case 0x09:
+			Serial.print(" Status 2");
+			break;
+			case 0x0A:
+			Serial.print(" Control ");
+			break;
+			case 0x0C:
+			Serial.print(" Self-test");
+			break;
+			case 0x0F:
+			Serial.print(" I2C disable");
+			break;
+			case 0x10:
+			Serial.print(" X-axis sensitivity adjustment value");
+			break;
+			case 0x11:
+			Serial.print(" Y-axis sensitivity adjustment value");
+			break;
+			case 0x12:
+			Serial.print(" Z-axis sensitivity adjustment value");
+			break;
+
+
+		}
+		Serial.print(" Value = 0x");
+		DPRINTHEX(D);
+		Serial.print(" 0B");
+		DPRINTBIN(D);
+		Serial.println();
+	}
+	Serial.println("\n");
+	I2Cdev::writeByte(0x0C,0x0A ,  1 << 4 | 0x01 );// 16bit single measurement mode
+
+//	AKM_CNTL_WRITE_CONT_MEAS_MODE1(akm_addr,1);
+//Serial.println((WriteStatus())? "W-AKM_CNTL_WRITE_CONT_MEAS_MODE1":"X-AKM_CNTL_WRITE_CONT_MEAS_MODE1");
+	return *this;
+}
+
+
+/*
+// Returns temperature in DegC, resolution is 0.01 DegC. Output value of
+// "5123" equals 51.23 DegC.
+int32_t bmp280_compensate_T(int32_t adc_T)
+{
+	int32_t var1, var2, T;
+	var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
+	var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
+	t_fine = var1 + var2;
+	T = (t_fine * 5 + 128) >> 8;
+	return T;
+}
+
+*/

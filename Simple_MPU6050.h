@@ -26,12 +26,14 @@ class Simple_MPU6050 : public I2Cdev {
       int16_t gz ;
     };
 
+	float mx, my, mz; // variables to hold latest magnetometer data values
 
     typedef union AccelGyro_u {
       SensorList_s V;
       int16_t intData[sizeof(SensorList_s) / 2];
     };
 
+	uint8_t HIGH_SENS  = 1; // 0 = 14-BIT, 1 = 16-BIT 
     AccelGyro_u S;
     uint8_t buffer[14];
     uint8_t devAddr;
@@ -40,13 +42,22 @@ class Simple_MPU6050 : public I2Cdev {
 	uint8_t WhoAmI;
     uint8_t dmp_on;/* 1 if DMP is enabled. */
     uint8_t data[16];
+	uint8_t TVal; // TVal For any read
     uint8_t packet_length;
     uint16_t dmp_features;
     uint16_t sensor_timestamp;
     int16_t  gyro[3], accel[3];
+	float mag[3];
     int32_t quat[4];
     uint8_t compass_addr;
     int16_t mag_sens_adj[3];
+    float mag_sens_adj_F[3];
+	int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
+	float magCalibration[3] = {0, 0, 0};  // Factory mag calibration and mag bias
+	float magBias[3] = {0, 0, 0};
+	float mRes;
+
+
     int8_t I2CReadCount; //items Read 
     bool I2CWriteStatus; //  True False
 	int16_t sax_,say_,saz_,sgx_,sgy_,sgz_;
@@ -154,6 +165,11 @@ class Simple_MPU6050 : public I2Cdev {
 	Simple_MPU6050 & setup_compass(byte Is_MPU9150 = 0);
 	Simple_MPU6050 & mpu_get_compass_reg_bypass(short *Data);
 	Simple_MPU6050 & mpu_get_compass_reg_External(int16_t *Data);
+	Simple_MPU6050 & readMagData();
+	Simple_MPU6050 & magcalMPU();
+	Simple_MPU6050 & viewMagRegisters();
+
+	Simple_MPU6050 & readMagDataThroughMPU();
 };
 
 
