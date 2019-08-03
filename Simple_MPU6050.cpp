@@ -597,7 +597,7 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
-	double kP = 0.3;
+	double kP = 0.2;
 	double kI = 200;
 	float x;
 	x = (100 - map(constrain(Loops,1,30), 1, 3, 10, 0)) * .01;
@@ -614,7 +614,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	float kP = 0.3;
-	float kI = 20;
+	float kI = 50;
 	float x;
 	x = (100 - map(constrain(Loops,1,5), 1, 5, 20, 0)) * .01;
 	kP *= x;
@@ -673,6 +673,13 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 					Data = ((Data)&0xFFFE) |BitZero[i]; // Insert Bit0 Saved at beginning
 				} else Data = round((PTerm + ITerm[i] ) / 4); // Gyro
 				I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1,  &Data);
+
+/*if((i+SaveAddress) == 0x13){
+	SPrint(Reading);
+	SPrint(Data);
+	Serial.println();
+}*/
+
 			}
 			if((c == 99) && eSum > 1000){
 				c = 2;
