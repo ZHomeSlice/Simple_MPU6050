@@ -598,9 +598,9 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 	double kP = 0.3;
-	double kI = 90;
+	double kI = 200;
 	float x;
-	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+	x = (100 - map(constrain(Loops,1,30), 1, 3, 10, 0)) * .01;
 	kP *= x;
 	kI *= x;
 	PID( 0x43,  kP, kI,  Loops);
@@ -616,7 +616,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	float kP = 0.3;
 	float kI = 20;
 	float x;
-	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+	x = (100 - map(constrain(Loops,1,5), 1, 5, 20, 0)) * .01;
 	kP *= x;
 	kI *= x;
 	PID( 0x3B, kP, kI,  Loops);
@@ -624,7 +624,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	return *this;
 }
 
-
+#define SPrint(Data) Serial.print(Data);Serial.print(", ");
 Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops) {
 	uint8_t SaveAddress = (ReadAddress == 0x3B)?((WhoAmI < 0x38 )? 0x06:0x77):0x13;
 	int16_t Data;
@@ -639,7 +639,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 	Serial.write('*');
 	for (int i = 0; i < 3; i++) {
 		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, &Data); // reads 1 or more 16 bit integers (Word)
-		Reading = Data;// Convert int to float;
+		Reading = (int16_t)Data;// Convert int to float;
 		if(SaveAddress != 0x13){
 			BitZero[i] = Data & 1; // Capture Bit Zero to properly handle Accelerometer calibration
 			ITerm[i] = ((float)Data) * 8;
@@ -653,7 +653,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 			eSum = 0;
 			for (int i = 0; i < 3; i++) {
 				I2Cdev::readWords(devAddr, ReadAddress + (i * 2), 1, &Data); // reads 1 or more 16 bit integers (Word)
-				Reading = Data;// Convert int to float;
+				Reading = (int16_t)Data;// Convert int to float;
 				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;  //remove Gravity
 				Error = -Reading; // PID is reverse
 				eSum += (Reading < 0) ? Error : Reading; //only want Positive Numbers
@@ -683,8 +683,8 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 			delay(1);
 		}
 		Serial.write('.');
-		kP *= .75;
-		kI *= .75;
+		kP *= .90;
+		kI *= .90;
 	}
 	for (int i = 0; i < 3; i++){
 		if(SaveAddress != 0x13) {
