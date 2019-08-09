@@ -64,30 +64,39 @@
 #define FIFO_EN_READ_SLV1(Data)								MPUi2cRead(0x23, 1, 1, (uint8_t *)Data)  //   Adds SLV1 data to FIFO
 #define FIFO_EN_READ_SLV0(Data)								MPUi2cRead(0x23, 1, 0, (uint8_t *)Data)  //   Adds SLV0 data to FIFO
 
-
+#define I2C_MST_CTRL_READ_ALL(Data)							MPUi2cReadByte(0x24, (uint8_t *)Data)	//   I2C STUFF
 #define I2C_MST_CTRL_READ_MULT_MST_EN(Data)					MPUi2cRead(0x24, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_WAIT_FOR_ES(Data)					MPUi2cRead(0x24, 1, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_SLV_3_FIFO_EN(Data)			    MPUi2cRead(0x24, 1, 5, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_I2C_MST_P_NSR(Data)			    MPUi2cRead(0x24, 1, 4, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_MST_CTRL_READ_I2C_MST_CLK(Data)				    MPUi2cRead(0x24, 4, 3, (uint8_t *)Data)  //   I2C STUFF
 
+#define I2C_SLV0_ADDR_READ_ALL(Data)						MPUi2cReadByte(0x25, (uint8_t *)Data)	//   I2C STUFF
 #define I2C_SLV0_ADDR_READ_I2C_SLV0_RNW(Data)		      	MPUi2cRead(0x25, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_ADDR_READ_I2C_ID_0(Data)				    MPUi2cRead(0x25, 7, 6, (uint8_t *)Data)  //   I2C STUFF
+
 #define I2C_SLV0_REG_READ_I2C_SLV0_REG(Data)                MPUi2cReadByte(0x26, (uint8_t *)Data)  //   I2C STUFF
+
+#define I2C_SLV0_CTRL_READ_ALL(Data)						MPUi2cReadByte(0x27, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_EN(Data)                MPUi2cRead(0x27, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_BYTE_SW(Data)           MPUi2cRead(0x27, 1, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS(Data)           MPUi2cRead(0x27, 1, 5, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_GRP(Data)               MPUi2cRead(0x27, 1, 4, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV0_CTRL_READ_I2C_SLV0_LENG(Data)              MPUi2cRead(0x27, 4, 3, (uint8_t *)Data)  //   I2C STUFF
 
+#define I2C_SLV1_ADDR_READ_ALL(Data)						MPUi2cReadByte(0x28, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_ADDR_READ_I2C_SLV1_RNW(Data)               MPUi2cRead(0x28, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_ADDR_READ_I2C_ID_1(Data)                   MPUi2cRead(0x28, 7, 6, (uint8_t *)Data)  //   I2C STUFF
+
 #define I2C_SLV1_REG_READ_I2C_SLV1_REG(Data)                MPUi2cReadByte(0x29, (uint8_t *)Data)  //   I2C STUFF
+
+#define I2C_SLV1_CTRL_READ_ALL(Data)						MPUi2cReadByte(0x2A, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_CTRL_READ_I2C_SLV1_EN(Data)                MPUi2cRead(0x2A, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_CTRL_READ_I2C_SLV1_BYTE_SW(Data)           MPUi2cRead(0x2A, 1, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_CTRL_READ_I2C_SLV1_REG_DIS(Data)           MPUi2cRead(0x2A, 1, 5, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_CTRL_READ_I2C_SLV1_GRP(Data)               MPUi2cRead(0x2A, 1, 4, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV1_CTRL_READ_I2C_SLV1_LENG(Data)              MPUi2cRead(0x2A, 4, 3, (uint8_t *)Data)  //   I2C STUFF
+
 #define I2C_SLV2_ADDR_READ_I2C_SLV2_RNW(Data)               MPUi2cRead(0x2B, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV2_ADDR_READ_I2C_ID_2(Data)                   MPUi2cRead(0x2B, 7, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV2_REG_READ_I2C_SLV2_REG(Data)                MPUi2cReadByte(0x2C, (uint8_t *)Data)  //   I2C STUFF
@@ -108,6 +117,9 @@
 #define I2C_SLV4_ADDR_READ_I2C_ID_4(Data)                   MPUi2cRead(0x31, 7, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV4_REG_READ_I2C_SLV4_REG(Data)                MPUi2cReadByte(0x32, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV4_DO_READ_I2C_SLV4_DO(Data)                  MPUi2cReadByte(0x33, (uint8_t *)Data)  //   I2C STUFF
+
+#define I2C_SLV4_CTRL_READ_ALL(Data)                  MPUi2cReadByte(0x34, (uint8_t *)Data)  //   I2C STUFF
+
 #define I2C_SLV4_CTRL_READ_I2C_SLV4_EN(Data)                MPUi2cRead(0x34, 1, 7, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV4_CTRL_READ_SLV4_DONE_INT_EN(Data)           MPUi2cRead(0x34, 1, 6, (uint8_t *)Data)  //   I2C STUFF
 #define I2C_SLV4_CTRL_READ_I2C_SLV4_REG_DIS(Data)           MPUi2cRead(0x34, 1, 5, (uint8_t *)Data)  //   I2C STUFF
@@ -199,6 +211,8 @@
 #define I2C_SLV1_DO_READ_I2C_SLV1_DO(Data)                  MPUi2cReadByte(0x64, (uint8_t *)Data)  //   Data out when slave 1 is set to write
 #define I2C_SLV2_DO_READ_I2C_SLV2_DO(Data)                  MPUi2cReadByte(0x65, (uint8_t *)Data)  //   Data out when slave 2 is set to write
 #define I2C_SLV3_DO_READ_I2C_SLV3_DO(Data)                  MPUi2cReadByte(0x66, (uint8_t *)Data)  //   Data out when slave 3 is set to write
+
+#define I2C_MST_DELAY_CTRL_READ_ALL(Data)					MPUi2cReadByte(0x67, (uint8_t *)Data)  //   Delays shadowing of external sensor data until     ALL data is received
 #define I2C_MST_DELAY_CTRL_READ_DELAY_ES_SHADOW(Data)       MPUi2cRead(0x67, 1, 7, (uint8_t *)Data)  //   Delays shadowing of external sensor data until     ALL data is received
 #define I2C_MST_DELAY_CTRL_READ_I2C_SLV4_DLY_EN(Data)       MPUi2cRead(0x67, 1, 4, (uint8_t *)Data)  //   When enabled, slave 4 will only be accessed
 #define I2C_MST_DELAY_CTRL_READ_I2C_SLV3_DLY_EN(Data)       MPUi2cRead(0x67, 1, 3, (uint8_t *)Data)  //   When enabled, slave 3 will only be accessed
@@ -264,5 +278,5 @@
 // uint8_t Address = 0;
 // FindAddress(Address,128) // checks and increments Address until we find something then stops
 // Address now contains the address of the discovered device.
-#define FindAddress(Address,Limit)	{  uint8_t error = 4; while(1){ Wire.beginTransmission(Address);if((Wire.endTransmission() == 0)||!((Address++)%Limit)) break;}}
+#define FindAddressx(Address,Limit)	{  uint8_t error = 4; while(1){ Wire.beginTransmission(Address);if((Wire.endTransmission() == 0)||!((Address++)%Limit)) break;}}
 #endif

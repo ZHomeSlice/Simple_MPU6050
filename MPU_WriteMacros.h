@@ -334,7 +334,10 @@
 #define AKM_ST1_READ_DATA_OVERRUN(compass_addr, Data)		MPUi2cRead(compass_addr,0x02,1,1,(uint8_t *)Data)	//BIT 1 mpu9250 ONLY DOR bit turns to “1” when data has been skipped in continuous measurement mode or external trigger measurement mode. It returns to “0” when any one of ST2 register or measurement data register (HXL~HZH) is read.
 
 #define AKM_DATA_READ_RAW_COMPASS_DATA(compass_addr, Data)	MPUi2cReadBytes(compass_addr,0x03,6,(uint8_t *)Data) // Read the six raw data and ST2 registers sequentially into data array
-#define SwapBytes(Data)										{uint8_t L = (uint8_t)Data>>8; Data = (Data<<8) | L;}
+
+#define SwapBytes(Data)										{uint8_t L = (uint8_t)((uint16_t)Data>>8); Data = (int16_t)((uint16_t)Data<<8) | (uint16_t)L;}  // Swaps the Byte order of the integer
+
+
 #define AKM_DATA_READ_RAW_COMPASS_SWAP(compass_addr, Data)	MPUi2cReadInts(compass_addr,0x03,3,(uint16_t *)Data);SwapBytes(Data[0]);SwapBytes(Data[1]);SwapBytes(Data[2]) //Read 8Bytes of Data
 #define AKM_DATA_READ_RAW_COMPASS(compass_addr, Data)		MPUi2cReadInts(compass_addr,0x03,3,(uint16_t *)Data) //Read 8Bytes of Data
 #define AKM_HX_READ_HX(compass_addr, Data)					MPUi2cReadInt(compass_addr,0x03,(uint16_t *)Data);SwapBytes(Data[0])
@@ -351,21 +354,21 @@
 #define HS_14bit 0
 #define HS_16bit 1
 #define AKM_POWER_DOWN(HIGHS_SENS)											(0b0000|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b0000|((HIGHS_SENS & 1)<<4))) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
+#define AKM_CNTL_WRITE_POWER_DOWN(compass_addr, HIGHS_SENS)					MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b0000|((HIGHS_SENS & 1)<<4))) // Power to almost all internal circuits is turned off. All registers are accessible in power-down mode. However, fuse ROM data cannot be read correctly. Data stored in read/write registers are remained. They can be reset by soft reset.
 #define AKM_SINGLE_MEAS_MODE(HIGHS_SENS)									(0b0001|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b0001|((HIGHS_SENS & 1)<<4))) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
+#define AKM_CNTL_WRITE_SINGLE_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b0001|((HIGHS_SENS & 1)<<4))) // Gets Data and then sets DATA_READY = True, after Get Data > DATA_READY = false  afterwords AKM set to POWER_DOWN
 #define AKM_SELFTEST_MODE(HIGHS_SENS)										(0b1000|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b1000|((HIGHS_SENS & 1)<<4))) // Self-test mode is used to check if the sensor is working normally
+#define AKM_CNTL_WRITE_SELFTEST_MODE(compass_addr, HIGHS_SENS)				MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b1000|((HIGHS_SENS & 1)<<4))) // Self-test mode is used to check if the sensor is working normally
 #define AKM_FUSE_ROM_ACCESS(HIGHS_SENS)										(0b1111|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b1111|((HIGHS_SENS & 1)<<4))) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
+#define AKM_CNTL_WRITE_FUSE_ROM_ACCESS(compass_addr, HIGHS_SENS)			MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b1111|((HIGHS_SENS & 1)<<4))) // Fuse ROM access mode is used to read Fuse ROM data. Sensitivity adjustment data for each axis is stored in fuse ROM.
 
 //MPU9250 ONLY
 #define CONT_MEAS_MODE1(HIGHS_SENS)											(0b0010|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b0010|((HIGHS_SENS & 1)<<4))) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE1(compass_addr, HIGHS_SENS)			MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b0010|((HIGHS_SENS & 1)<<4))) // 8Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define CONT_MEAS_MODE2(HIGHS_SENS)											(0b0110|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b0110|((HIGHS_SENS & 1)<<4))) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
+#define AKM_CNTL_WRITE_CONT_MEAS_MODE2(compass_addr, HIGHS_SENS)			MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b0110|((HIGHS_SENS & 1)<<4))) // 100Hz When sensor measurement and signal processing is finished, measurement data is stored and DATA_READY = True
 #define EXT_TRIG_MEAS_MODE(HIGHS_SENS)										(0b0100|(HIGHS_SENS & 1)<<4)
-#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWrite(compass_addr,0x0A,3,4,(uint8_t)(0b0100|((HIGHS_SENS & 1)<<4))) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
+#define AKM_CNTL_WRITE_EXT_TRIG_MEAS_MODE(compass_addr, HIGHS_SENS)			MPUi2cWriteByte(compass_addr,0x0A,(uint8_t)(0b0100|((HIGHS_SENS & 1)<<4))) // waits for trigger input. When a pulse is input from TRG pin, sensor measurement is started on the rising edge of TRG pin Gets Data and then sets DATA_READY = True
 
 #define AKM_CNTL_READ_ALL(compass_addr,Data)				MPUi2cReadByte(compass_addr,0x0A,(uint8_t *)Data)
 

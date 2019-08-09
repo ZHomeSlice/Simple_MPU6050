@@ -33,9 +33,11 @@ class Simple_MPU6050 : public I2Cdev {
       int16_t intData[sizeof(SensorList_s) / 2];
     };
 
+	const float radians_to_degrees = 180.0 / M_PI;
 	uint8_t HIGH_SENS  = 1; // 0 = 14-BIT, 1 = 16-BIT 
     AccelGyro_u S;
     uint8_t buffer[14];
+	uint16_t IntBuffer[7];
     uint8_t devAddr;
 	uint8_t akm_addr = 0;
 	uint8_t akm_WhoAmI;
@@ -52,10 +54,14 @@ class Simple_MPU6050 : public I2Cdev {
     uint8_t compass_addr;
     int16_t mag_sens_adj[3];
     float mag_sens_adj_F[3];
+	int32_t mag_sens_adj_L[3];
 	int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
 	float magCalibration[3] = {0, 0, 0};  // Factory mag calibration and mag bias
-	float magBias[3] = {0, 0, 0};
 	float mRes;
+	float mag_bias[3] = {0, 0, 0}; // max+min /2
+	float mag_scale[3] = {0, 0, 0};// max-min /2
+	float dest1[3]; // hard iron correction mag biases in G  magBias * mRes * mag_sens_adj
+	float dest2[3]; // soft iron correction estimate  = ( "average" magBias(x+y+z) /3) / mag_bias
 
 
     int8_t I2CReadCount; //items Read 
@@ -162,14 +168,21 @@ class Simple_MPU6050 : public I2Cdev {
 	Simple_MPU6050 & PID(uint8_t ReadAddress, float kP, float kI, uint8_t Loops);  // Does the math
 
 	//Compass functions:
+	Simple_MPU6050 & I2CScanner();
+	uint8_t FindAddress(uint8_t Address,uint8_t Limit);
 	Simple_MPU6050 & setup_compass(byte Is_MPU9150 = 0);
 	Simple_MPU6050 & mpu_get_compass_reg_bypass(short *Data);
 	Simple_MPU6050 & mpu_get_compass_reg_External(int16_t *Data);
+
 	Simple_MPU6050 & readMagData();
+	Simple_MPU6050 & readMagDataThroughMPU();
+
 	Simple_MPU6050 & magcalMPU();
+	Simple_MPU6050 & setMagOffsets(float xMagB,float yMagB,float zMagB, float xMagS,float yMagS,float zMagS);
+	Simple_MPU6050 & PrintMagOffsets();
+
 	Simple_MPU6050 & viewMagRegisters();
 
-	Simple_MPU6050 & readMagDataThroughMPU();
 };
 
 
