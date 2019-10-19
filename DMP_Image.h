@@ -563,7 +563,7 @@ class VectorInt16 {
 
 
   float getMagnitude() {
-    return sqrt(x*x + y*y + z*z);
+    return sqrt((float)x*(float)x + (float)y*(float)y + (float)z*(float)z);
   }
 
   VectorInt16 :: normalize() {
