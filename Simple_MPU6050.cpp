@@ -759,10 +759,10 @@ Simple_MPU6050 &  Simple_MPU6050::GetQuaternion(Quaternion *q, const int32_t* qI
 }
 
 Simple_MPU6050 &  Simple_MPU6050::GetLinearAccel(VectorInt16 *v, VectorInt16 *vRaw, VectorFloat *gravity) {
-	// get rid of the gravity component (+1g = +8192 in standard DMP FIFO packet, sensitivity is 2g)
-	v -> x = vRaw -> x - gravity -> x * 8192;
-	v -> y = vRaw -> y - gravity -> y * 8192;
-	v -> z = vRaw -> z - gravity -> z * 8192;
+	// get rid of the gravity component (+1g = +16384 in standard DMP FIFO packet, sensitivity is +-2g)
+	v -> x = vRaw -> x - gravity -> x * 16384;
+	v -> y = vRaw -> y - gravity -> y * 16384;
+	v -> z = vRaw -> z - gravity -> z * 16384;
 	return *this;
 }
 
