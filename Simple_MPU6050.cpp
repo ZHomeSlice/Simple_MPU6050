@@ -1,4 +1,5 @@
 
+
 #include <Wire.h>
 #include <I2Cdev.h>
 #include "DMP_Image.h"
@@ -118,48 +119,91 @@ void Simple_MPU6050::OverflowProtection(void) {
 /**
 @brief      Reads Newest packet from fifo then on success triggers Callback routine
 */
-Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo() {
-	if (!CheckForInterrupt()) return *this;
+Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt = 1) {
+	if (CheckInterrupt && !CheckForInterrupt()) return *this;
 	if (!dmp_read_fifo(gyro, accel, quat, sensor_timestamp)) {
 		return *this;
 	}
 	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, sensor_timestamp);
 	return *this;
 }
+ 
+
+ int16_t Simple_MPU6050::getFIFOCount(){
+	int16_t fifo_count;
+	FIFO_COUNTH_READ_FIFO_CNT(&fifo_count);
+	return (fifo_count);
+ }
+
+
+/** Get latest byte from FIFO buffer no matter how much time has passed.
+ * ===                  GetCurrentFIFOPacket                    ===
+ * ================================================================
+ * Returns 1) when nothing special was done
+ *         0) when no valid data is available
+ * ================================================================ */
+ int8_t Simple_MPU6050::GetCurrentFIFOPacket(uint8_t *data, uint8_t length) { // overflow proof
+     int16_t fifoC;
+     // This section of code is for when we allowed more than 1 packet to be acquired
+     uint32_t BreakTimer = micros();
+     do {
+         if ((fifoC = getFIFOCount())  > length) {
+
+             if (fifoC > 200) { // if you waited to get the FIFO buffer to > 200 bytes it will take longer to get the last packet in the FIFO Buffer than it will take to  reset the buffer and wait for the next to arrive
+                 USER_CTRL_WRITE_FIFO_RST(); // Fixes any overflow corruption
+                 fifoC = 0;
+                 while (!(fifoC = getFIFOCount()) && ((micros() - BreakTimer) <= (11000))); // Get Next New Packet
+             } else { //We have more than 1 packet but less than 200 bytes of data in the FIFO Buffer
+                 uint8_t Trash[BUFFER_LENGTH];
+                 while ((fifoC = getFIFOCount()) > length) {  // Test each time just in case the MPU is writing to the FIFO Buffer
+                     fifoC = fifoC - length; // Save the last packet
+                     uint16_t  RemoveBytes;
+                     while (fifoC) { // fifo count will reach zero so this is safe
+                         RemoveBytes = min((int)fifoC, BUFFER_LENGTH); // Buffer Length is different than the packet length this will efficiently clear the buffer
+//                        getFIFOBytes(Trash, (uint8_t)RemoveBytes);
+						 FIFO_READ((uint8_t)RemoveBytes, Trash);
+                         fifoC -= RemoveBytes;
+                     }
+                 }
+             }
+         }
+         if (!fifoC) return 0; // Called too early no data or we timed out after FIFO Reset
+         // We have 1 packet
+         if ((micros() - BreakTimer) > (11000)) return 0;
+     } while (fifoC != length);
+	 FIFO_READ((uint8_t)length, data);  //Get 1 packet
+//     getFIFOBytes(data, length); //Get 1 packet
+     return 1;
+}
 
 /**
 @brief      Get the Newest packet from the FIFO. FIFO Buffer will be empty awaiting for next packet
 */
 uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-	uint8_t fifo_data[MAX_PACKET_LENGTH];
-	uint8_t ii = 0;
 	/* Get a packet. */
-	uint16_t fifo_count = 0;
-	uint8_t more;
-	FIFO_COUNTH_READ_FIFO_CNT(&fifo_count);
-	if ((fifo_count < packet_length) || (fifo_count % packet_length)) {
-		reset_fifo();
-		return 0;
+	uint8_t fifo_data[MAX_PACKET_LENGTH];
+	if(GetCurrentFIFOPacket(fifo_data, packet_length)){
+
+	//	FIFO_READ(packet_length, fifo_data);
+		timestamp = micros();
+	//	fifo_count -= packet_length;
+		/* Parse DMP packet. */
+		uint8_t ii = 0;
+		quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
+		quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
+		quat[2] = ((int32_t)fifo_data[8] << 24) | ((int32_t)fifo_data[9] << 16) | ((int32_t)fifo_data[10] << 8) | fifo_data[11];
+		quat[3] = ((int32_t)fifo_data[12] << 24) | ((int32_t)fifo_data[13] << 16) | ((int32_t)fifo_data[14] << 8) | fifo_data[15];
+		ii += 16;
+		accel[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
+		accel[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
+		accel[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
+		ii += 6;
+		gyro[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
+		gyro[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
+		gyro[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
+		return 1;
 	}
-	more = (fifo_count / packet_length);
-	while (more--) {
-		FIFO_READ(packet_length, fifo_data);
-		timestamp = millis();
-	}
-	/* Parse DMP packet. */
-	quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
-	quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
-	quat[2] = ((int32_t)fifo_data[8] << 24) | ((int32_t)fifo_data[9] << 16) | ((int32_t)fifo_data[10] << 8) | fifo_data[11];
-	quat[3] = ((int32_t)fifo_data[12] << 24) | ((int32_t)fifo_data[13] << 16) | ((int32_t)fifo_data[14] << 8) | fifo_data[15];
-	ii += 16;
-	accel[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
-	accel[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
-	accel[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
-	ii += 6;
-	gyro[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
-	gyro[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
-	gyro[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
-	return 1;
+	return 0;
 }
 
 //***************************************************************************************
@@ -323,11 +367,96 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	TestConnection(1);
 	Serial.println();
 	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
+/* instruction suggest this sequence
+	MPUi2cWriteByte(0x6B, 0x00);				
+	MPUi2cWriteByte(0x6C, 0x00);				
+	MPUi2cWriteByte(0x1A, 0x03);
+	MPUi2cWriteByte(0x1B, 0x18);
+	MPUi2cWriteByte(0x1C, 0x00);
+	MPUi2cWriteByte(0x23, 0x00);
+	MPUi2cWriteByte(0x38, 0x00);
+	MPUi2cWriteByte(0x6A, 0x04);
+	MPUi2cWriteByte(0x19, 0x04);
+	if(!CalibrateMode){
+		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
+	}
+	MPUi2cWriteByte(0x6A, 0x40);
+	MPUi2cWriteByte(0x6A, 0x04);
+	MPUi2cWriteByte(0x6A, 0x80);
+	MPUi2cWriteByte(0x6A, 0x08);
+	MPUi2cWriteByte(0x38, 0x02);
+*/
+
+
+
+	MPUi2cWriteByte(0x6B, 0x00);
+	MPUi2cWriteByte(0x6C, 0x00);
+	MPUi2cWriteByte(0x1A, 0x03);
+	MPUi2cWriteByte(0x1B, 0x18);
+	MPUi2cWriteByte(0x1C, 0x00);
+	MPUi2cWriteByte(0x23, 0x00);
+	MPUi2cWriteByte(0x38, 0x00);
+	MPUi2cWriteByte(0x6A, 0x04);
+	MPUi2cWriteByte(0x19, 0x04);
+	if(!CalibrateMode){
+		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
+	}
+	resetOffset();	// Load Calibration offset values into MPU
+	if(CalibrateMode)return;
+	PrintActiveOffsets();
+	AKM_Init();
+	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
+	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
+
+
+
+
+
+/*
 	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
 	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
 	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
 	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
-	MPUi2cWriteByte(0x37, 0x32);				// 0011 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+//	MPUi2cWriteByte(0x37, 0x22);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+	MPUi2cWriteByte(0x37, 0x32);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
+	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
+	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
+	if(!CalibrateMode){
+		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
+	}
+	MPUi2cWriteByte(0x1B, 0x18);				// 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
+	resetOffset();	// Load Calibration offset values into MPU
+	if(CalibrateMode)return;
+	PrintActiveOffsets();
+	AKM_Init();
+	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
+	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
+	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
+*/
+	dmp_on = 1;
+#ifdef interruptPin
+	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+#endif
+	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
+	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
+	return *this;
+}
+/*
+Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
+	uint8_t val;
+	TestConnection(1);
+	Serial.println();
+	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
+	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
+	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
+	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
+	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
+	//	MPUi2cWriteByte(0x37, 0x22);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
+	MPUi2cWriteByte(0x37, 0x32);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
 	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
 	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
 	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
@@ -349,6 +478,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
 	return *this;
 }
+*/
 
 /**
 @brief      ***EVERYTHING!*** needed to get DMP up and running! With Calibration!!!
@@ -597,14 +727,14 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
-	double kP = 0.2;
-	double kI = 200;
+	double kP = 0.3;
+	double kI = 90;
 	float x;
-	x = (100 - map(constrain(Loops,1,30), 1, 3, 10, 0)) * .01;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
 	kP *= x;
 	kI *= x;
 	PID( 0x43,  kP, kI,  Loops);
-	Serial.println();
+	//Serial.println();
 	return *this;
 }
 
@@ -614,37 +744,36 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	float kP = 0.3;
-	float kI = 50;
+	float kI = 90;
 	float x;
-	x = (100 - map(constrain(Loops,1,5), 1, 5, 20, 0)) * .01;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
 	kP *= x;
 	kI *= x;
 	PID( 0x3B, kP, kI,  Loops);
-	Serial.println();
+	//Serial.println();
 	return *this;
 }
 
 #define SPrint(Data) Serial.print(Data);Serial.print(", ");
 Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops) {
 	uint8_t SaveAddress = (ReadAddress == 0x3B)?((WhoAmI < 0x38 )? 0x06:0x77):0x13;
-	int16_t Data;
+
+	int16_t  Data;
 	float Reading;
 	int16_t BitZero[3];
 	uint8_t shift =(SaveAddress == 0x77)?3:2;
 	float Error, PTerm, ITerm[3];
 	int16_t eSample;
 	uint32_t eSum ;
-
-
-	Serial.write('*');
+	Serial.write('>');
 	for (int i = 0; i < 3; i++) {
-		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, &Data); // reads 1 or more 16 bit integers (Word)
-		Reading = (int16_t)Data;// Convert int to float;
+		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+		Reading = Data;
 		if(SaveAddress != 0x13){
-			BitZero[i] = Data & 1; // Capture Bit Zero to properly handle Accelerometer calibration
-			ITerm[i] = ((float)Data) * 8;
+			BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
+			ITerm[i] = ((float)Reading) * 8;
 			} else {
-			ITerm[i] = ((float)Data) * 4;
+			ITerm[i] = Reading * 4;
 		}
 	}
 	for (int L = 0; L < Loops; L++) {
@@ -652,56 +781,37 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 		for (int c = 0; c < 100; c++) {// 100 PI Calculations
 			eSum = 0;
 			for (int i = 0; i < 3; i++) {
-				I2Cdev::readWords(devAddr, ReadAddress + (i * 2), 1, &Data); // reads 1 or more 16 bit integers (Word)
-				Reading = (int16_t)Data;// Convert int to float;
-				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;  //remove Gravity
-				Error = -Reading; // PID is reverse
-				eSum += (Reading < 0) ? Error : Reading; //only want Positive Numbers
+				I2Cdev::readWords(devAddr, ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+				Reading = Data;
+				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;	//remove Gravity
+				Error = -Reading;
+				eSum += abs(Reading);
 				PTerm = kP * Error;
-				ITerm[i] += (Error * 0.001) *  kI; // Integral term 1000 Calculations a second = 0.001
-				if(SaveAddress != 0x13){ //Accellerometer
-					Data = round((PTerm + ITerm[i] ) / 8);
-					if(abs(Error) > 400){
-						if((L+c) == 0){
-							Data = 0;
-							ITerm[i] = Data;
-							}else if((L == 0) && (c == 1)){
-							Data = Error / 8;
-							ITerm[i] = Data;
-						}
-					}
-					Data = ((Data)&0xFFFE) |BitZero[i]; // Insert Bit0 Saved at beginning
-				} else Data = round((PTerm + ITerm[i] ) / 4); // Gyro
-				I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1,  &Data);
-
-				/*if((i+SaveAddress) == 0x13){
-				SPrint(Reading);
-				SPrint(Data);
-				Serial.println();
-				}*/
-
+				ITerm[i] += (Error * 0.001) * kI;				// Integral term 1000 Calculations a second = 0.001
+				if(SaveAddress != 0x13){
+					Data = round((PTerm + ITerm[i] ) / 8);		//Compute PID Output
+					Data = ((Data)&0xFFFE) |BitZero[i];			// Insert Bit0 Saved at beginning
+				} else Data = round((PTerm + ITerm[i] ) / 4);	//Compute PID Output
+				I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
 			}
-			if((c == 99) && eSum > 1000){
-				c = 2;
-				Serial.write('-');
+			if((c == 99) && eSum > 1000){						// Error is still to great to continue
+				c = 0;
+				Serial.write('*');
 			}
-			if((eSum * ((ReadAddress == 0x3B)?.05: 1)) < 5) eSample++;// Test to see if we are really close!
-			if((eSum < 100) && (c > 10) && (eSample >= 10)) break; // We have 10 really Close Calculations Cycle to Next loop
+			if((eSum * ((ReadAddress == 0x3B)?.05: 1)) < 5) eSample++;	// Successfully found offsets prepare to  advance
+			if((eSum < 100) && (c > 10) && (eSample >= 10)) break;		// Advance to next Loop
 			delay(1);
 		}
 		Serial.write('.');
-		kP *= .90;
-		kI *= .90;
-	}
-	for (int i = 0; i < 3; i++){
-		if(SaveAddress != 0x13) {
-			Data = round((ITerm[i] ) / 8); //Compute PID Output
-			Data = ((Data)&0xFFFE) |BitZero[i];  // Insert Bit0 Saved at beginning
-		} else Data = round((ITerm[i]) / 4);
-		I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, &Data );
-		// by Using ITerm value only for the final offset prevents the last reading from having and
-		// influence on the offsets
-
+		kP *= .75;
+		kI *= .75;
+		for (int i = 0; i < 3; i++){
+			if(SaveAddress != 0x13) {
+				Data = round((ITerm[i] ) / 8);		//Compute PID Output
+				Data = ((Data)&0xFFFE) |BitZero[i];	// Insert Bit0 Saved at beginning
+			} else Data = round((ITerm[i]) / 4);
+			I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+		}
 	}
 	SIGNAL_PATH_FULL_RESET_WRITE_RESET();
 	return *this;
@@ -796,7 +906,7 @@ Simple_MPU6050 & Simple_MPU6050::GetYawPitchRoll(float *data, Quaternion *q, Vec
 	data[1] = atan(gravity -> x / sqrt(gravity -> y*gravity -> y + gravity -> z*gravity -> z));
 	// roll: (tilt left/right, about X axis)
 	data[2] = atan(gravity -> y / sqrt(gravity -> x*gravity -> x + gravity -> z*gravity -> z));
-	#else
+	#else 
 	// yaw: (about Z axis)
 	data[0] = atan2(2*q -> x*q -> y - 2*q -> w*q -> z, 2*q -> w*q -> w + 2*q -> x*q -> x - 1);
 	// pitch: (nose up/down, about Y axis)
@@ -814,6 +924,12 @@ Simple_MPU6050 & Simple_MPU6050::GetYawPitchRoll(float *data, Quaternion *q, Vec
 	return *this;
 }
 
+Simple_MPU6050 & Simple_MPU6050::GetYawPitchRoll(float *data, Quaternion *q) {
+	data[0] = atan2(2.0f * (q -> x*q -> y + q -> w * q -> z), q -> w * q -> w + q -> x * q -> x - q -> y * q -> y - q -> z * q -> z);
+	data[1] = -asin(2.0f * (q -> x * q -> z - q -> w * q -> y));
+	data[2]  = atan2(2.0f * (q -> w * q -> x + q -> y * q -> z), q -> w * q -> w - q -> x * q -> x - q -> y * q -> y + q -> z * q -> z);
+	return *this;
+}
 
 
 
@@ -831,6 +947,51 @@ Simple_MPU6050 & Simple_MPU6050::ConvertToDegrees(float*ypr, float*xyz) {
 Simple_MPU6050 & Simple_MPU6050::ConvertToRadians( float*xyz, float*ypr) {
 	const float degrees_to_radians = M_PI / 180.0;
 	for (int i = 0; i < 3; i++) ypr[i] = xyz[i] * degrees_to_radians;
+	return *this;
+}
+
+Simple_MPU6050 & Simple_MPU6050::MagneticNorth(float*data, VectorInt16 *v, Quaternion*q ) {
+	float ax = v->x, ay = v->y, az = v->z;
+	float q1 = q->w, q2 = q->x, q3 = q->y, q4 = q->z;   // short name local variable for readability
+	float mx = mag[0], my = mag[1], mz = mag[2];
+	float hx, hy, bx, bz,vx,vy,vz,wx,wy,wz,ex,ey,ez;
+	float q1q1 = q1 * q1;
+	float q1q2 = q1 * q2;
+	float q1q3 = q1 * q3;
+	float q1q4 = q1 * q4;
+	float q2q2 = q2 * q2;
+	float q2q3 = q2 * q3;
+	float q2q4 = q2 * q4;
+	float q3q3 = q3 * q3;
+	float q3q4 = q3 * q4;
+	float q4q4 = q4 * q4;
+
+
+	// Reference direction of Earth's magnetic field
+	hx = 2.0f * mx * (0.5f - q3q3 - q4q4) + 2.0f * my * (q2q3 - q1q4) + 2.0f * mz * (q2q4 + q1q3);
+	hy = 2.0f * mx * (q2q3 + q1q4) + 2.0f * my * (0.5f - q2q2 - q4q4) + 2.0f * mz * (q3q4 - q1q2);
+	bx = sqrt((hx * hx) + (hy * hy));
+	bz = 2.0f * mx * (q2q4 - q1q3) + 2.0f * my * (q3q4 + q1q2) + 2.0f * mz * (0.5f - q2q2 - q3q3);
+
+	// Estimated direction of gravity and magnetic field
+	vx = 2.0f * (q2q4 - q1q3);
+	vy = 2.0f * (q1q2 + q3q4);
+	vz = q1q1 - q2q2 - q3q3 + q4q4;
+	wx = 2.0f * bx * (0.5f - q3q3 - q4q4) + 2.0f * bz * (q2q4 - q1q3);
+	wy = 2.0f * bx * (q2q3 - q1q4) + 2.0f * bz * (q1q2 + q3q4);
+	wz = 2.0f * bx * (q1q3 + q2q4) + 2.0f * bz * (0.5f - q2q2 - q3q3);
+
+	// Error is cross product between estimated direction and measured direction of gravity
+	ex = (ay * vz - az * vy) + (my * wz - mz * wy);
+	ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
+	ez = (ax * vy - ay * vx) + (mx * wy - my * wx);
+
+	data[0] = wx;
+	data[1] = wy;
+	data[2] = wz;
+	data[3] = ex;
+	data[4] = ey;
+	data[5] = ez;
 	return *this;
 }
 
@@ -1120,11 +1281,18 @@ Simple_MPU6050 & Simple_MPU6050::readMagData(){
 	if(mag_scale[1]!=0) mag[1] *= mag_scale[1];
 	if(mag_scale[2]!=0) mag[2] *= mag_scale[2];
 
-	//Normailze mag values
-	 float   nmag = sqrt(mag[0]*mag[0] + mag[1]*mag[1] + mag[2]*mag[2]);
-	 mag[0] =mag[0]/ nmag;
-	 mag[1] =mag[1]/ nmag;
-	 mag[2] =mag[2]/ nmag;
+
+	// Normalise magnetometer measurement
+	float nmag = sqrt(mag[0] * mag[0] + mag[1] * mag[1] + mag[2] * mag[2]);
+	if (nmag == 0.0f) return; // handle NaN
+	nmag = 1.0f / nmag;        // use reciprocal for division
+	mag[0] *= nmag;
+	mag[1] *= nmag;
+	mag[2] *= nmag;
+
+
+
+
 	  // Calculate heading when the magnetometer is level, then correct for signs of axis.
 	  // Atan2() automatically check the correct formula taking care of the quadrant you are in
 	//  float heading = atan2(mag[1], mag[0]) * radians_to_degrees;

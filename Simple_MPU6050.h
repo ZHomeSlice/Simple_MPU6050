@@ -1,5 +1,7 @@
 #ifndef Simple_MPU6050_h
 #define Simple_MPU6050_h
+
+ #define interruptPin 2
 #include <Wire.h>
 #include <I2Cdev.h>
 #include "DMP_Image.h"
@@ -93,7 +95,9 @@ class Simple_MPU6050 : public I2Cdev {
 
     // usage functions
     uint8_t CheckForInterrupt(void);
-    Simple_MPU6050 & dmp_read_fifo(); //Overloaded Callback trigger
+    int16_t getFIFOCount();
+	int8_t GetCurrentFIFOPacket(uint8_t *data, uint8_t length);
+    Simple_MPU6050 & dmp_read_fifo(uint8_t CheckInterrupt = 1); // 0 = No interrupt needed to try to get data
     uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic Send and receive
     /* register management functions and Helper Macros:
         See MPU_ReadMacros.h and MPU_WriteMacros.h for a complete set of Register management Macros
@@ -145,8 +149,10 @@ class Simple_MPU6050 : public I2Cdev {
     Simple_MPU6050 & GetGravity(VectorFloat *v, Quaternion *q);
     Simple_MPU6050 & GetEuler(float *data, Quaternion *q);
     Simple_MPU6050 & GetYawPitchRoll(float *data, Quaternion *q, VectorFloat *gravity);
+	Simple_MPU6050 & GetYawPitchRoll(float *data, Quaternion *q);
     Simple_MPU6050 & ConvertToDegrees(float*ypr, float*xyz);
     Simple_MPU6050 & ConvertToRadians( float*xyz, float*ypr);
+	Simple_MPU6050 & MagneticNorth(float*data, VectorInt16 *v, Quaternion*q );
 
     // firmware management functions
     Simple_MPU6050 & load_firmware(uint16_t  length, const uint8_t *firmware);

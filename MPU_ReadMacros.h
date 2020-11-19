@@ -155,14 +155,22 @@
 #define INT_ENABLE_READ_RAW_DMP_INT_EN(Data)                MPUi2cRead(0x38, 1, 1, (uint8_t *)Data)  //   1   Enable
 #define INT_ENABLE_READ_RAW_RDY_EN(Data)                    MPUi2cRead(0x38, 1, 0, (uint8_t *)Data)  //   1   Enable Raw Sensor Data Ready interrupt to propagate to interrupt pin.  0   function is disabled.
 
-#define INT_STATUS_ALL_READ(Data)                           MPUi2cReadInt(0x39,  (uint16_t *)Data)  //  Read INT_STATUS_DMP_READ 
-#define INT_STATUS_DMP_READ(Data)                           MPUi2cReadByte(0x39, (uint8_t *)Data)  //  Read INT_STATUS_DMP_READ 
-#define INT_STATUS_DMP_READ_FIFO_OVERFLOW(Data)             MPUi2cRead(0x39,1,4,(uint8_t *)Data)  //   1   dmp Fifo Overflow interrupt occurred.
+//#define INT_STATUS_ALL_READ(Data)                           MPUi2cReadInt(0x39,  (uint16_t *)Data)   //  Read INT_STATUS_DMP_READ 
+// Above first byte is considered a read. so the second byte is cleared... fail
+// Create macros for all read to detect the states of each byte
 
+#define INT_STATUS_DMP_READ(Data)                           MPUi2cReadByte(0x39, (uint8_t *)Data)    //  Read INT_STATUS_DMP_READ 
+
+// The following fail when more than the one value is needed we need alternate macros after grabbing the full byte or int.
+#define INT_STATUS_DMP_READ_FIFO_OVERFLOW(Data)             MPUi2cRead(0x39,1,4,(uint8_t *)Data)     //   1   dmp Fifo Overflow interrupt occurred.
+
+#define INT_STATUS_READ(Data)                               MPUi2cReadByte(0x3A, (uint8_t *)Data)    //  Read INT_STATUS_READ
+// The following fail when more than the one value is needed we need alternate macros after grabbing the full byte or int.
 #define INT_STATUS_READ_WOM_INT(Data)                       MPUi2cRead(0x3A, 1, 6, (uint8_t *)Data)  //   1   Wake on motion interrupt occurred.
 #define INT_STATUS_READ_FIFO_OFLOW_INT(Data)                MPUi2cRead(0x3A, 1, 4, (uint8_t *)Data)  //   1   Fifo Overflow interrupt occurred.
 #define INT_STATUS_READ_FSYNC_INT(Data)                     MPUi2cRead(0x3A, 1, 3, (uint8_t *)Data)  //   1   Fsync interrupt occurred.
-#define INT_STATUS_READ_RAW_DATA_RDY_INT(Data)              MPUi2cRead(0x3A, 1, 0, (uint8_t *)Data)  //   T 1   Sensor Register Raw Data sensors are updated and Ready to be read.
+#define INT_STATUS_READ_RAW_DATA_RDY_INT(Data)              MPUi2cRead(0x3A, 1, 0, (uint8_t *)Data)  //   1   Sensor Register Raw Data sensors are updated and Ready to be read.
+
 
 #define ACCEL_XOUT_H_READ_ACCEL_TMP_GYTO(Data)              MPUi2cReadInts(0x3B,7, (uint16_t *)Data)  //   accelerometer x-axis data.
 
