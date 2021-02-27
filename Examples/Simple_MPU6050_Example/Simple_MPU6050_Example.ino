@@ -198,7 +198,7 @@ void setup() {
   Serial.println(F("Start:"));
 #ifdef OFFSETS
   Serial.println(F("Using Offsets"));
-  mpu.SetAddress(MPU6050_ADDRESS_AD0_LOW).load_DMP_Image(OFFSETS); // Does it all for you
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).load_DMP_Image(OFFSETS); // Does it all for you
 
 #else
   Serial.println(F(" Since no offsets are defined we aregoing to calibrate this specific MPU6050,\n"
@@ -208,7 +208,7 @@ void setup() {
   while (Serial.available() && Serial.read()); // empty buffer
   while (!Serial.available());                 // wait for data
   while (Serial.available() && Serial.read()); // empty buffer again
-  mpu.SetAddress(MPU6050_ADDRESS_AD0_LOW).CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
 #endif
   mpu.on_FIFO(print_Values);
 }
