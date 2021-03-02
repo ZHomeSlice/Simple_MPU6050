@@ -8,9 +8,9 @@
 #define SELF_TEST_Y_GYRO_WRITE_I2C_MST_VDDIO(Data)      MPUi2cWrite(0x01, 1,7, (uint8_t)Data)		//   self test output generated during manufacturing tests
 #define SELF_TEST_Z_GYRO_WRITE_zg_st_data(Data)         MPUi2cWriteByte(0x02, (uint8_t)Data)			//   self test output generated during manufacturing tests
 //6050 Accelerometer Fine Gain Offsets (Need Documentation)
-#define RA_X_FINE_GAIN(Data)         			MPUi2cWriteByte(0x03, (uint8_t)Data)			//[7:0] X_FINE_GAIN
-#define RA_Y_FINE_GAIN(Data)         			MPUi2cWriteByte(0x04, (uint8_t)Data)			//[7:0] Y_FINE_GAIN
-#define RA_Z_FINE_GAIN(Data)         			MPUi2cWriteByte(0x05, (uint8_t)Data)			//[7:0] Z_FINE_GAIN
+#define RA_X_FINE_GAIN_WRITE(Data)       		MPUi2cWriteByte(0x03, (uint8_t)Data)			//[7:0] X_FINE_GAIN
+#define RA_Y_FINE_GAIN_WRITE(Data)         		MPUi2cWriteByte(0x04, (uint8_t)Data)			//[7:0] Y_FINE_GAIN
+#define RA_Z_FINE_GAIN_WRITE(Data)         		MPUi2cWriteByte(0x05, (uint8_t)Data)			//[7:0] Z_FINE_GAIN
 //6050 Accelerometer Offsets
 #define A_OFFSET_WRITE_A_OFFS(Shift, Data)              MPUi2cWriteInt(0x06 + (Shift * 2), (uint16_t)Data)//
 #define A_OFFSET_H_WRITE_A_OFFS(Data)                   MPUi2cWriteInts(0x06, 6, (uint16_t *)Data)		//   X accelerometer offset cancellation
