@@ -6,6 +6,10 @@
 //#define SELF_TEST_X_GYRO_READ_xg_st_data(Data)			MPUi2cReadByte(0x00, (uint8_t *)Data)  //   self test output generated during manufacturing tests
 //#define SELF_TEST_Y_GYRO_READ_yg_st_data(Data)			MPUi2cReadByte(0x01, (uint8_t *)Data)  //   self test output generated during manufacturing tests
 //#define SELF_TEST_Z_GYRO_READ_zg_st_data(Data)			MPUi2cReadByte(0x02, (uint8_t *)Data)  //   self test output generated during manufacturing tests
+//6050 Accelerometer Fine Gain Offsets (Need Documentation)
+#define RA_X_FINE_GAIN_READ(Data)         			MPUi2cReadByte(0x03, (uint8_t *)Data)			//[7:0] X_FINE_GAIN
+#define RA_Y_FINE_GAIN_READ(Data)         			MPUi2cReadByte(0x04, (uint8_t *)Data)			//[7:0] Y_FINE_GAIN
+#define RA_Z_FINE_GAIN_READ(Data)         			MPUi2cReadByte(0x05, (uint8_t *)Data)			//[7:0] Z_FINE_GAIN
 //6050 Accellerator Offsets
 #define A_OFFSET_H_READ_A_OFFS(Data)						MPUi2cReadInts(0x06, 3, (uint16_t *)Data)  //   X accelerometer offset cancellation
 #define XA_OFFSET_H_READ_XA_OFFS(Data)						MPUi2cReadInt(0x06, (uint16_t *)Data)  //   X accelerometer offset cancellation
