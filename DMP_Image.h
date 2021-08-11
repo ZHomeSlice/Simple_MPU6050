@@ -527,14 +527,20 @@ class Quaternion {
     return sqrt(w*w + x*x + y*y + z*z);
   }
   
-  Quaternion :: normalize() {
+ // Quaternion :: normalize() {
+  Quaternion normalize() {
     float m = getMagnitude();
-    w /= m;
-    x /= m;
-    y /= m;
-    z /= m;
-    return this;
-  }
+   // w /= m;
+   // x /= m;
+   // y /= m;
+  //  z /= m;
+  //  return this;
+   return Quaternion(
+      w /= m, // new w
+      x /= m, // new x
+      y /= m, // new y
+      z /= m); // new z
+  } 
   
   Quaternion getNormalized() {
     Quaternion r(w, x, y, z);
@@ -568,10 +574,11 @@ class VectorInt16 {
 
   VectorInt16 :: normalize() {
     float m = getMagnitude();
-    x /= m;
-    y /= m;
-    z /= m;
-    return this;
+    //x /= m;
+    //y /= m;
+    //z /= m;
+    //return this;
+    return VectorInt16(x /= m,y /= m,z /= m);
   }
   
   VectorInt16 getNormalized() {
@@ -600,10 +607,10 @@ class VectorInt16 {
     p = p.getProduct(q -> getConjugate());
 
     // p quaternion is now [0, x', y', z']
-    x = p.x;
-    y = p.y;
-    z = p.z;
-    return this;
+    //x = p.x;
+    //y = p.y;
+    //z = p.z;
+    return VectorInt16(p.x,p.y,p.z);
   }
 
   VectorInt16 getRotated(Quaternion *q) {
@@ -637,10 +644,11 @@ class VectorFloat {
 
   VectorFloat :: normalize() {
     float m = getMagnitude();
-    x /= m;
-    y /= m;
-    z /= m;
-    return this;
+    //x /= m;
+    //y /= m;
+    //z /= m;
+    //return this;
+    return VectorFloat( x /= m,y /= m,z /= m);
   }
   
   VectorFloat getNormalized() {
@@ -659,10 +667,11 @@ class VectorFloat {
     p = p.getProduct(q -> getConjugate());
 
     // p quaternion is now [0, x', y', z']
-    x = p.x;
-    y = p.y;
-    z = p.z;
-    return this;
+    //x = p.x;
+    //y = p.y;
+    //z = p.z;
+   // return this;
+     return VectorFloat( p.x,p.y,p.z);
   }
 
   VectorFloat getRotated(Quaternion *q) {
