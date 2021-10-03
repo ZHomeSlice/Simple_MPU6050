@@ -91,26 +91,7 @@ uint8_t Simple_MPU6050::CheckForInterrupt(void) {
 	return InteruptTriggered;
 }
 
-/**
-@brief      During the Dreded delay() using yield() limit the fifo packets to 10 less than max packets
-*/
-void Simple_MPU6050::OverflowProtection(void) {
-	uint32_t Timestamp ;
-	Timestamp = millis();
-	static uint32_t spamtimer;
-	if ((Timestamp - spamtimer) >= 30) {
-		spamtimer = Timestamp;
-		uint16_t fifo_count;
-		int8_t Packets;
-		FIFO_COUNTH_READ_FIFO_CNT(&fifo_count);
-		Packets = (fifo_count / packet_length) - (_maxPackets - 10); // Leaves room for 2 more readings
-		if (Packets <= 0)return;
-		uint8_t trash[packet_length + 1] ;
-		while (0 < Packets--) {
-			FIFO_READ(packet_length, trash);
-		}
-	}
-}
+
 
 
 //***************************************************************************************

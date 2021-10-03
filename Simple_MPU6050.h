@@ -8,9 +8,6 @@
 #include "MPU_WriteMacros.h"
 #include "MPU_ReadMacros.h"
 
-#define ENABLE_MPU_OVERFLOW_PROTECTION(...) void yield(void){mpu.OverflowProtection();} // yield is called from within the delay() function 
-
-
 
 class Simple_MPU6050 : public I2Cdev {
     static void nothing(void) {};
@@ -91,7 +88,6 @@ class Simple_MPU6050 : public I2Cdev {
     Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);
-    void OverflowProtection(void);
 	Simple_MPU6050 & CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
 	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
     Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
