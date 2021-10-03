@@ -6,7 +6,6 @@
 #define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
 
 Simple_MPU6050 mpu;
-ENABLE_MPU_OVERFLOW_PROTECTION();
 /*             _________________________________________________________*/
 //               X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro
 //#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets. 
