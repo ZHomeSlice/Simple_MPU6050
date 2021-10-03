@@ -306,11 +306,11 @@
 #define AKM_I2C_DELAY_CTRL		0x67
 
 // setup_compass Creates:
-#define EXT_I2C_ST1_READ_BYTE(Data)						MPUi2cReadByte(0x49, (uint8_t *)Data)
+#define EXT_I2C_ST1_READ_BYTE1(Data)						MPUi2cReadByte(0x49, (uint8_t *)Data)
 #define EXT_I2C_ST1_READ_DATA_READY(Data)				MPUi2cRead(0x49, 1,0, (uint8_t *)Data)
 #define EXT_I2C_ST1_READ_OVERRUN(Data)					MPUi2cRead(0x49, 1,1, (uint8_t *)Data)
 #define EXT_I2C_READ_RAW_COMPASS(Data)					MPUi2cReadInts(0x4A, 3, (uint16_t *)Data)
-#define EXT_I2C_ST1_READ_BYTE(Data)						MPUi2cReadByte(0x4D, (uint8_t *)Data)
+#define EXT_I2C_ST1_READ_BYTE2(Data)						MPUi2cReadByte(0x4D, (uint8_t *)Data)
 #define EXT_I2C_ST1_READ_DATA_ERROR(Data)				MPUi2cRead(0x4D, 1,2 (uint8_t *)Data)
 #define EXT_I2C_ST1_READ_SENSOR_OVERFLOW(Data)			MPUi2cRead(0x4D, 1,3 (uint8_t *)Data)
 #define EXT_I2C_ST1_READ_BITM(Data)						MPUi2cRead(0x4D, 1,4 (uint8_t *)Data)
@@ -410,9 +410,9 @@
 #define AKM_REG_ASAY			(0x11)
 #define AKM_REG_ASAZ			(0x12)
 
-#define AKM_POWER_DOWN          (0x00)
+#define AKM_POWER_DOWN_          (0x00)
 #define AKM_SINGLE_MEASUREMENT  (0x01)
-#define AKM_FUSE_ROM_ACCESS     (0x0F)
+#define AKM_FUSE_ROM_ACCESS_     (0x0F)
 #define AKM_MODE_SELF_TEST      (0x08)
 
 

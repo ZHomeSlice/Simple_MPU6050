@@ -18,7 +18,17 @@ class Simple_MPU6050 : public I2Cdev {
     typedef void (*_ON_FIFO_CB_PTR)(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp); // Create a type to point to a function.
     _ON_FIFO_CB_PTR on_FIFO_cb = nothing;
   public:
-    typedef struct SensorList_s {
+/* typedef struct SensorList_s {
+      int16_t ax ;
+      int16_t ay ;
+      int16_t az ;
+      int16_t Temp;
+      int16_t gx ;
+      int16_t gy ;
+      int16_t gz ;
+    };
+ */
+    struct SensorList_s {
       int16_t ax ;
       int16_t ay ;
       int16_t az ;
@@ -29,11 +39,17 @@ class Simple_MPU6050 : public I2Cdev {
     };
 
 	float mx, my, mz; // variables to hold latest magnetometer data values
-
+/*
     typedef union AccelGyro_u {
       SensorList_s V;
       int16_t intData[sizeof(SensorList_s) / 2];
     };
+*/
+    union AccelGyro_u {
+      SensorList_s V;
+      int16_t intData[sizeof(SensorList_s) / 2];
+    };
+
 
 	const float radians_to_degrees = 180.0 / M_PI;
 	uint8_t HIGH_SENS  = 1; // 0 = 14-BIT, 1 = 16-BIT 
@@ -49,7 +65,7 @@ class Simple_MPU6050 : public I2Cdev {
 	uint8_t TVal; // TVal For any read
     uint8_t packet_length;
     uint16_t dmp_features;
-    uint16_t sensor_timestamp;
+    uint32_t sensor_timestamp;
     int16_t  gyro[3], accel[3];
 	float mag[3];
     int32_t quat[4];

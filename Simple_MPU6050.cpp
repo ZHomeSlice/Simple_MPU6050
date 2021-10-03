@@ -119,12 +119,12 @@ void Simple_MPU6050::OverflowProtection(void) {
 /**
 @brief      Reads Newest packet from fifo then on success triggers Callback routine
 */
-Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt = 1) {
+Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
 	if (CheckInterrupt && !CheckForInterrupt()) return *this;
-	if (!dmp_read_fifo(gyro, accel, quat, sensor_timestamp)) {
+	if (!dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) {
 		return *this;
 	}
-	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, sensor_timestamp);
+	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, &sensor_timestamp);
 	return *this;
 }
  
@@ -185,7 +185,7 @@ uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *qu
 	if(GetCurrentFIFOPacket(fifo_data, packet_length)){
 
 	//	FIFO_READ(packet_length, fifo_data);
-		timestamp = micros();
+		*timestamp = micros();
 	//	fifo_count -= packet_length;
 		/* Parse DMP packet. */
 		uint8_t ii = 0;
@@ -272,10 +272,10 @@ Simple_MPU6050 & Simple_MPU6050::MPUi2cWrite(uint8_t regAddr, uint8_t length, ui
 }
 Simple_MPU6050 & Simple_MPU6050::MPUi2cWrite(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t Val) {
 	if (length == 1) {
-		I2CWriteStatus = writeBit(AltAddress, regAddr, bitNum, &Val); // Alters 1 bit by reading the byte making a change and storing the byte (faster than writeBits)
+		I2CWriteStatus = writeBit(AltAddress, regAddr, bitNum, Val); // Alters 1 bit by reading the byte making a change and storing the byte (faster than writeBits)
 	}
 	else if (bitNum != 255) {
-		I2CWriteStatus = writeBits(AltAddress, regAddr, bitNum, length, &Val); // Alters several bits by reading the byte making a change and storing the byte
+		I2CWriteStatus = writeBits(AltAddress, regAddr, bitNum, length, Val); // Alters several bits by reading the byte making a change and storing the byte
 	}
 	return *this;
 }
@@ -404,7 +404,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
 	resetOffset();	// Load Calibration offset values into MPU
-	if(CalibrateMode)return;
+	if(CalibrateMode)return *this;
 	PrintActiveOffsets();
 	AKM_Init();
 	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
@@ -567,7 +567,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 returns 1 on success
 stops or returns 0 on fail
 */
-uint8_t Simple_MPU6050::TestConnection(int Stop = 1) {
+uint8_t Simple_MPU6050::TestConnection(int Stop ) {
 	byte x;
 	Wire.beginTransmission(CheckAddress());
 	if(Wire.endTransmission() != 0){
@@ -658,8 +658,7 @@ void view_MPU_Startup_Registers() {
 	ShowByte(0x38);
 }
 
-#define A_OFFSET_H_READ_A_OFFS(Data)    MPUi2cReadInts(0x06, 3, Data)  //   X accelerometer offset cancellation
-#define XG_OFFSET_H_READ_OFFS_USR(Data) MPUi2cReadInts(0x13, 3, Data)  //   Remove DC bias from the gyro sensor Step 0.0305 dps
+
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 
 
@@ -701,7 +700,7 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 	Serial.print(F("const unsigned char dmp_memory[DMP_CODE_SIZE] PROGMEM = {\n"));
 		for (ii = 0; ii < length; ii += this_read) {
 			this_read = min(LOAD_CHUNK, length - ii);
-			writeWords(devAddr, 0x6D, 1,  ii);
+			writeWords(devAddr, 0x6D, 1,  &ii);
 			readBytes(devAddr, 0x6F,  this_read, cur);
 			if ((ii % (16 * 16)) == 0) {
 				Serial.print(F("/* bank # "));
@@ -1250,7 +1249,7 @@ Simple_MPU6050 & Simple_MPU6050::mpu_set_bypass(unsigned char bypass_on){
 	return *this;
 }
 
-#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+//#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 Simple_MPU6050 & Simple_MPU6050::readMagData(){
 	//read mag
 	static unsigned long _ETimer;
@@ -1284,7 +1283,7 @@ Simple_MPU6050 & Simple_MPU6050::readMagData(){
 
 	// Normalise magnetometer measurement
 	float nmag = sqrt(mag[0] * mag[0] + mag[1] * mag[1] + mag[2] * mag[2]);
-	if (nmag == 0.0f) return; // handle NaN
+	if (nmag == 0.0f) return *this; // handle NaN
 	nmag = 1.0f / nmag;        // use reciprocal for division
 	mag[0] *= nmag;
 	mag[1] *= nmag;
@@ -1388,7 +1387,7 @@ Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
 	mag[1] = (float)((((int16_t)buffer[3]) << 8) | buffer[2]);
 	mag[2] = (float)((((int16_t)buffer[5]) << 8) | buffer[4]);
 	
-	#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+	//#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 	printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
 	printfloatx(F("")            , mag[1],  15, 3, F(",   "));
 	printfloatx(F("")            , mag[2],  15, 3, F("\t"));
