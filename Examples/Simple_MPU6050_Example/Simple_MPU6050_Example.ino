@@ -182,6 +182,28 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //***************************************************************************************
 //******************                Setup and Loop                 **********************
 //***************************************************************************************
+/*
+ * Set the DMP output rate from 200Hz to 60 seconds
+ * These are the DMP output rates pre calculated
+ * #define DMP_200Hz  0x00, 0x00
+ * #define DMP_100Hz  0x00, 0x01
+ * #define DMP_50Hz   0x00, 0x03
+ * #define DMP_40Hz   0x00, 0x04
+ * #define DMP_25Hz   0x00, 0x07
+ * #define DMP_20Hz   0x00, 0x09
+ * #define DMP_10Hz   0x00, 0x13
+ * #define DMP_1Hz    0x00, 0xC7
+ * #define DMP_1Sec   0x00, 0xC7
+ * #define DMP_10Sec  0x07, 0xCF
+ * #define DMP_60Sec  0x2E, 0xDF
+ * #define DMP_1Min   0x2E, 0xDF
+ * #define DMP_5Min   0xEA, 0x5F 
+ * 
+ * How to Calculate your own
+ * div = DMP_SAMPLE_RATE / rate_in_Hz - 1;  
+ * div = 200 / rate - 1;  
+ * #define DMP_xxx High Bit,  Low Bit
+ */
 void setup() {
   uint8_t val;
   // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -195,6 +217,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
+  mpu.Set_DMP_Output_Rate(DMP_100Hz);// Set the DMP output rate from 200Hz to 5 Minutes
 #ifdef OFFSETS
   Serial.println(F("Using Offsets"));
   mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).load_DMP_Image(OFFSETS); // Does it all for you

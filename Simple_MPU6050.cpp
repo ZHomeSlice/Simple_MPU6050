@@ -317,7 +317,9 @@ Simple_MPU6050 & Simple_MPU6050::read_mem(uint16_t mem_addr, uint16_t length, ui
 	BANK_SEL_WRITE(mem_addr);
 	DMP_MEM_READ(length, Data);
 	return *this;
-	} Simple_MPU6050 & Simple_MPU6050::write_mem(uint16_t  mem_addr, uint16_t  length, uint8_t *Data) {
+	} 
+
+Simple_MPU6050 & Simple_MPU6050::write_mem(uint16_t  mem_addr, uint16_t  length, uint8_t *Data) {
 	BANK_SEL_WRITE(mem_addr);
 	DMP_MEM_WRITE(length, Data);
 	return *this;
@@ -330,6 +332,27 @@ Simple_MPU6050 & Simple_MPU6050::read_mem(uint16_t mem_addr, uint16_t length, ui
 /**
 @brief      ***EVERYTHING!*** needed to get DMP up and running!
 */
+/*
+ * #define DMP_200Hz  0x00, 0x00
+ * #define DMP_100Hz  0x00, 0x01
+ * #define DMP_50Hz   0x00, 0x03
+ * #define DMP_40Hz   0x00, 0x04
+ * #define DMP_25Hz   0x00, 0x07
+ * #define DMP_20Hz   0x00, 0x09
+ * #define DMP_10Hz   0x00, 0x13
+ * #define DMP_1Hz    0x00, 0xC7
+ * #define DMP_1Sec   0x00, 0xC7
+ * #define DMP_10Sec  0x07, 0xCF
+ * #define DMP_60Sec  0x2E, 0xDF
+ * #define DMP_1Min   0x2E, 0xDF
+ * #define DMP_5Min   0xEA, 0x5F 
+*/
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate(uint8_t byteH, uint8_t byteL){  // 100 HZ Default
+	DMP_Output_Rate[0] = byteH;
+	DMP_Output_Rate[1] = byteL;
+}
+
+
 Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate) {
 	sax_ = ax_;
 	say_ = ay_;
@@ -382,6 +405,9 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	MPUi2cWriteByte(0x19, 0x04);
 	if(!CalibrateMode){
 		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		if((DMP_Output_Rate[0] != 0x00) || (DMP_Output_Rate[1] != 0x01)){
+			write_mem(D_0_22, 2, DMP_Output_Rate); // Modify the Firmware Chunk for DMP output Rate 
+		} 
 		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
 	resetOffset();	// Load Calibration offset values into MPU

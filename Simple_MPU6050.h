@@ -77,7 +77,7 @@ class Simple_MPU6050 : public I2Cdev {
 	float mag_scale[3] = {0, 0, 0};// max-min /2
 	float dest1[3]; // hard iron correction mag biases in G  magBias * mRes * mag_sens_adj
 	float dest2[3]; // soft iron correction estimate  = ( "average" magBias(x+y+z) /3) / mag_bias
-
+    uint8_t DMP_Output_Rate[2];
 
     int8_t I2CReadCount; //items Read 
     bool I2CWriteStatus; //  True False
@@ -90,6 +90,7 @@ class Simple_MPU6050 : public I2Cdev {
     uint8_t TestConnection(int Stop = 1);
 	Simple_MPU6050 & CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
 	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
+    Simple_MPU6050 & Set_DMP_Output_Rate(uint8_t byteH = 0x00, uint8_t byteL = 0x01); // 100Hz Default
     Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
 	Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate = 1);
 	Simple_MPU6050 & resetOffset();
