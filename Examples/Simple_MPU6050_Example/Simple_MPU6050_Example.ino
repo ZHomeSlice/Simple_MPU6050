@@ -192,6 +192,7 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
  * #define DMP_25Hz   0x00, 0x07
  * #define DMP_20Hz   0x00, 0x09
  * #define DMP_10Hz   0x00, 0x13
+ * #define DMP_5Hz    0x00, 0x27
  * #define DMP_1Hz    0x00, 0xC7
  * #define DMP_1Sec   0x00, 0xC7
  * #define DMP_10Sec  0x07, 0xCF
