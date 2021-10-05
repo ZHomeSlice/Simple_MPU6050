@@ -1,3 +1,14 @@
+/* 2 MPUXXXX Example
+ *  These can be any MPU MPU6050, MPU6500, MPU9150, MPU9155, MPU9250 ETC...
+ *  Attach 2 MPU's to the I2C buss
+ *  Power both MPU's According to specs. Generic Breakout Version Powers with 5V and has a onboard Voltage regulator.
+ *  attach a 2K ohm resister between Pin 8 and AD0 on one of the MPU's
+ *  attach a 2K ohm resister between Pin 9 and AD0 on one of the other MPU
+ *  Sketch will load both MPU's with DMP Firmware
+ *  Interrupt pin is not connected.
+ */
+
+
 //#include "MPU_ReadMacros.h"
 //#inc;ude "MPU_WriteMacros.h"
 #include "Simple_MPU6050.h"
@@ -8,7 +19,7 @@
 Simple_MPU6050 mpu;
 /*             _________________________________________________________*/
 //               X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro
-//#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets. 
+//#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets.
 //       You will want to use your own as these are only for my specific MPU6050.
 /*             _________________________________________________________*/
 
@@ -25,14 +36,20 @@ Simple_MPU6050 mpu;
    Spaces is the number of spaces the floating point number could possibly take up including +- and decimal point.
    Percision is the number of digits after the decimal point set to zero for intergers
 */
-#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+
+#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//printfloatx(Name,Variable,Spaces,Precision,EndTxt)
 
 int PrintValues(int32_t *quat, uint16_t SpamDelay = 100) {
+  uint8_t WhoAmI;
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
   float xyz[3] = { 0, 0, 0 };
   spamtimer(SpamDelay) {// non blocking delay before printing again. This skips the following code when delay time (ms) hasn't been met
+    mpu.WHO_AM_I_READ_WHOAMI(&WhoAmI);
+    Serial.print(F("WhoAmI= 0x"));
+    Serial.print(WhoAmI, HEX);
+    Serial.print(" ");
     mpu.GetQuaternion(&q, quat);
     mpu.GetGravity(&gravity, &q);
     mpu.GetYawPitchRoll(ypr, &q, &gravity);
@@ -167,11 +184,10 @@ int PrintWorldAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
 
 
 void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-  uint8_t Spam_Delay = 100; // Built in Blink without delay timer preventing Serial.print SPAM
-
-  // PrintValues(quat, Spam_Delay);
+  uint8_t Spam_Delay = 10; // Built in Blink without delay timer preventing Serial.print SPAM
+  PrintValues(quat, Spam_Delay);
   // ChartValues(quat, Spam_Delay);
-  PrintAllValues(gyro, accel, quat, Spam_Delay);
+  // PrintAllValues(gyro, accel, quat, Spam_Delay);
   // ChartAllValues(gyro, accel, quat, Spam_Delay);
   // PrintQuaternion(quat, Spam_Delay);
   // PrintEuler(quat, Spam_Delay);
@@ -183,28 +199,21 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //******************                Setup and Loop                 **********************
 //***************************************************************************************
 /*
- * Set the DMP output rate from 200Hz to 60 seconds
- * These are the DMP output rates pre calculated
- * #define DMP_200Hz  0x00, 0x00
- * #define DMP_100Hz  0x00, 0x01
- * #define DMP_50Hz   0x00, 0x03
- * #define DMP_40Hz   0x00, 0x04
- * #define DMP_25Hz   0x00, 0x07
- * #define DMP_20Hz   0x00, 0x09
- * #define DMP_10Hz   0x00, 0x13
- * #define DMP_1Hz    0x00, 0xC7
- * #define DMP_1Sec   0x00, 0xC7
- * #define DMP_10Sec  0x07, 0xCF
- * #define DMP_60Sec  0x2E, 0xDF
- * #define DMP_1Min   0x2E, 0xDF
- * #define DMP_5Min   0xEA, 0x5F 
- * 
- * How to Calculate your own
- * div = DMP_SAMPLE_RATE / rate_in_Hz - 1;  
- * div = 200 / rate - 1;  
- * #define DMP_xxx High Bit,  Low Bit
- */
+   #define DMP_200Hz  0x00, 0x00
+   #define DMP_100Hz  0x00, 0x01
+   #define DMP_50Hz  0x00, 0x03
+   #define DMP_40Hz 0x00, 0x04
+   #define DMP_25Hz 0x00, 0x07
+   #define DMP_20Hz 0x00, 0x09
+   #define DMP_10Hz 0x00, 0x13
+   #define DMP_5Hz  0x00, 0x27
+   #define DMP_1Hz 0x00, 0xC7
+   #define DMP_1sec 0x00, 0xC7
+   #define DMP_10sec  0x07, 0xCF
+   #define DMP_60sec  0x2E, 0xDF
+*/
 void setup() {
+
   uint8_t val;
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -218,24 +227,20 @@ void setup() {
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
-  mpu.Set_DMP_Output_Rate(DMP_100Hz);// Set the DMP output rate from 200Hz to 5 Minutes
-#ifdef OFFSETS
-  Serial.println(F("Using Offsets"));
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).load_DMP_Image(OFFSETS); // Does it all for you
-
-#else
-  Serial.println(F(" Since no offsets are defined we aregoing to calibrate this specific MPU6050,\n"
-                   " Start by having the MPU6050 placed stationary on a flat surface to get a proper accellerometer calibration\n"
-                   " Place the new offsets on the #define OFFSETS... line at top of program for super quick startup\n\n"
-                   " \t\t\t[Press Any Key]"));
-  while (Serial.available() && Serial.read()); // empty buffer
-  while (!Serial.available());                 // wait for data
-  while (Serial.available() && Serial.read()); // empty buffer again
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
-#endif
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).Set_DMP_Output_Rate(DMP_5Hz);
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  digitalWrite(8, HIGH);
+  digitalWrite(9, LOW);
+  mpu.CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
+  digitalWrite(8, LOW);
+  digitalWrite(9, HIGH);
+  mpu.CalibrateMPU().Enable_Reload_of_DMP().load_DMP_Image();// Does it all for you with Calibration
   mpu.on_FIFO(print_Values);
 }
 
 void loop() {
-  mpu.dmp_read_fifo();// Must be in loop
+  digitalWrite(8, !digitalRead(8));
+  digitalWrite(9, !digitalRead(9));
+  mpu.dmp_read_fifo(0);// Must be in loop
 }

@@ -524,10 +524,17 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
 }
 
 /**
+@brief      Resets the DMP firmware lockdown to allow firmware to be loaded again.
+*/
+Simple_MPU6050 &  Simple_MPU6050::Enable_Reload_of_DMP(){
+	DMP_Loaded = false;
+	return *this;	
+}
+/**
 @brief      Loads the DMP firmware.
 */
 Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *firmware) {
-	static bool loaded = false;
+	
 	uint16_t  ii;
 	uint16_t  this_write;
 
@@ -536,7 +543,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 	#define LOAD_CHUNK  (16)
 	uint8_t cur[LOAD_CHUNK], tmp[2];
 	uint8_t firmware_chunk[LOAD_CHUNK];
-	if (loaded)return *this; /* DMP should only be loaded once. */
+	if (DMP_Loaded)return *this; /* DMP should only be loaded once. */
 	if (!firmware) *this;
 
 	for (ii = 0; ii < length; ii += this_write) {
@@ -565,7 +572,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 	#ifdef DEBUG
 	Serial.println();
 	#endif
-	loaded = true;
+	DMP_Loaded = true;
 	return *this;
 }
 
