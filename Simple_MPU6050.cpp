@@ -675,7 +675,16 @@ void view_MPU_Startup_Registers() {
 
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 
-
+void Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
+	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	if(WhoAmI < 0x38)  A_OFFSET_H_READ_A_OFFS(Data);
+	else {
+		XA_OFFSET_H_READ_0x77_XA_OFFS(Data);
+		YA_OFFSET_H_READ_0x77_YA_OFFS(Data+1);
+		ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data+2);
+	}
+	XG_OFFSET_H_READ_OFFS_USR(Data + 3);
+}
 
 Simple_MPU6050 & Simple_MPU6050::PrintActiveOffsets( ) {
 	int16_t Data[3];
