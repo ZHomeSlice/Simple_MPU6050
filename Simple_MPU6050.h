@@ -178,6 +178,7 @@ class Simple_MPU6050 : public I2Cdev {
     // Default data gathering functions for program revisions
     void view_Vital_MPU_Registers();
     bool view_DMP_firmware_Instance(uint16_t  length);
+	void GetActiveOffsets(int16_t *Data);
 	Simple_MPU6050 & PrintActiveOffsets(); // See the results of the Calibration
 	Simple_MPU6050 & PrintActiveOffsets(uint8_t MPU6500andMPU9250); // See the results of the Calibration
 	Simple_MPU6050 & PrintActiveOffsets_MPU6500();
