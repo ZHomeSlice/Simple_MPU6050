@@ -332,26 +332,39 @@ Simple_MPU6050 & Simple_MPU6050::write_mem(uint16_t  mem_addr, uint16_t  length,
 /**
 @brief      ***EVERYTHING!*** needed to get DMP up and running!
 */
-/*
- * #define DMP_200Hz  0x00, 0x00
- * #define DMP_100Hz  0x00, 0x01
- * #define DMP_50Hz   0x00, 0x03
- * #define DMP_40Hz   0x00, 0x04
- * #define DMP_25Hz   0x00, 0x07
- * #define DMP_20Hz   0x00, 0x09
- * #define DMP_10Hz   0x00, 0x13
- * #define DMP_1Hz    0x00, 0xC7
- * #define DMP_1Sec   0x00, 0xC7
- * #define DMP_10Sec  0x07, 0xCF
- * #define DMP_60Sec  0x2E, 0xDF
- * #define DMP_1Min   0x2E, 0xDF
- * #define DMP_5Min   0xEA, 0x5F 
-*/
-Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate(uint8_t byteH, uint8_t byteL){  // 100 HZ Default
+
+/*Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate(uint8_t byteH, uint8_t byteL){  // 100 HZ Default
 	DMP_Output_Rate[0] = byteH;
 	DMP_Output_Rate[1] = byteL;
+	return *this;
 }
+*/
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate(uint16_t value){  // 100 HZ Default
+	DMP_Output_Rate[0] = (uint8_t)((value & 0xFF00) >> 8);
+	DMP_Output_Rate[1] = (uint8_t)(value & 0x00FF);
+	return *this;
+}
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Hz(float rate){  // 100 HZ Default
 
+    rate = (rate>200) ? 200 : rate;
+    rate = (rate<0) ? 0.0032 : rate;
+	uint16_t div = (uint16_t)( 200 / rate - 1);
+	Set_DMP_Output_Rate(div);
+	return *this;
+}
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Seconds(float rate){  // 100 HZ Default
+    rate = (rate>300) ? 300 : rate;
+    rate = (rate<0) ? 0 : rate;
+	uint16_t div = (uint16_t)( 200 / (1/rate) - 1);
+	Set_DMP_Output_Rate(div);
+	return *this;
+}
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Minutes(float rate){  // 100 HZ Default
+    rate = (rate>5) ? 5 : rate;
+    rate = (rate<0) ? 0 : rate;
+	Set_DMP_Output_Rate_Seconds(rate/60);
+	return *this;
+}
 
 Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate) {
 	sax_ = ax_;
@@ -371,29 +384,6 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	TestConnection(1);
 	Serial.println();
 	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
-/* instruction suggest this sequence
-	MPUi2cWriteByte(0x6B, 0x00);				
-	MPUi2cWriteByte(0x6C, 0x00);				
-	MPUi2cWriteByte(0x1A, 0x03);
-	MPUi2cWriteByte(0x1B, 0x18);
-	MPUi2cWriteByte(0x1C, 0x00);
-	MPUi2cWriteByte(0x23, 0x00);
-	MPUi2cWriteByte(0x38, 0x00);
-	MPUi2cWriteByte(0x6A, 0x04);
-	MPUi2cWriteByte(0x19, 0x04);
-	if(!CalibrateMode){
-		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
-		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
-	}
-	MPUi2cWriteByte(0x6A, 0x40);
-	MPUi2cWriteByte(0x6A, 0x04);
-	MPUi2cWriteByte(0x6A, 0x80);
-	MPUi2cWriteByte(0x6A, 0x08);
-	MPUi2cWriteByte(0x38, 0x02);
-*/
-
-
-
 	MPUi2cWriteByte(0x6B, 0x00);
 	MPUi2cWriteByte(0x6C, 0x00);
 	MPUi2cWriteByte(0x1A, 0x03);
@@ -405,9 +395,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	MPUi2cWriteByte(0x19, 0x04);
 	if(!CalibrateMode){
 		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
-		if((DMP_Output_Rate[0] != 0x00) || (DMP_Output_Rate[1] != 0x01)){
-			write_mem(D_0_22, 2, DMP_Output_Rate); // Modify the Firmware Chunk for DMP output Rate 
-		} 
+		write_mem(D_0_22, 2, DMP_Output_Rate);      // Modify the Firmware Chunk for DMP output Rate  
 		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
 	resetOffset();	// Load Calibration offset values into MPU
@@ -416,34 +404,6 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	AKM_Init();
 	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
 	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
-
-
-
-
-
-/*
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
-	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
-	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
-//	MPUi2cWriteByte(0x37, 0x22);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
-	MPUi2cWriteByte(0x37, 0x32);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
-	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
-	if(!CalibrateMode){
-		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
-		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
-	}
-	MPUi2cWriteByte(0x1B, 0x18);				// 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
-	resetOffset();	// Load Calibration offset values into MPU
-	if(CalibrateMode)return;
-	PrintActiveOffsets();
-	AKM_Init();
-	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
-	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
-	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
-*/
 	dmp_on = 1;
 #ifdef interruptPin
 	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
@@ -452,40 +412,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
 	return *this;
 }
-/*
-Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
-	uint8_t val;
-	TestConnection(1);
-	Serial.println();
-	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x38, 0x00);				// 0000 0000 INT_ENABLE: no Interrupt
-	MPUi2cWriteByte(0x23, 0x00);				// 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
-	MPUi2cWriteByte(0x1C, 0x00);				// 0000 0000 ACCEL_CONFIG: 0 =  Accel Full Scale Select: 2g
-	//	MPUi2cWriteByte(0x37, 0x22);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
-	MPUi2cWriteByte(0x37, 0x32);				// 0010 0010 INT_PIN_CFG: ACTL The logic level for int pin is active low. and interrupt status bits are cleared on any read
-	MPUi2cWriteByte(0x6B, 0x01);				// 0000 0001 PWR_MGMT_1: Clock Source Select PLL_X_gyro
-	MPUi2cWriteByte(0x19, 0x04);				// 0000 0100 SMPLRT_DIV: Divides the internal sample rate 400Hz ( Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV))
-	MPUi2cWriteByte(0x1A, 0x01);				// 0000 0001 CONFIG: Digital Low Pass Filter (DLPF) Configuration 188HZ  //Im betting this will be the beat
-	if(!CalibrateMode){
-		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
-		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
-	}
-	MPUi2cWriteByte(0x1B, 0x18);				// 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
-	resetOffset();	// Load Calibration offset values into MPU
-	if(CalibrateMode)return;
-	PrintActiveOffsets();
-	AKM_Init();
-	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
-	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
-	MPUi2cWrite(0x6A, 1, 2, 1);					// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 byte and then saves the byte)
-	dmp_on = 1;
-	attachInterrupt(0, [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
-	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
-	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
-	return *this;
-}
-*/
+
 
 /**
 @brief      ***EVERYTHING!*** needed to get DMP up and running! With Calibration!!!
@@ -553,7 +480,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 		for ( x = 0; x < this_write; x++ ) firmware_chunk[x] = pgm_read_byte_near(pFirmware + x);
 		write_mem(ii, this_write, firmware_chunk);
 		#ifdef DEBUG
-		// this displays the firmware by retrieving it from the MPU6050 after it was written to the serial port
+		// this displays the firmware by retrieving it from the MPU6050 after it was written Then Sending it to the serial port
 		read_mem(ii, this_write, cur);
 		if ((ii % (16 * 16)) == 0) {
 			Serial.print(F("/* bank # "));
@@ -673,7 +600,6 @@ void view_MPU_Startup_Registers() {
 }
 
 
-#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 
 void Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
@@ -696,14 +622,14 @@ Simple_MPU6050 & Simple_MPU6050::PrintActiveOffsets( ) {
 		YA_OFFSET_H_READ_0x77_YA_OFFS(Data+1);
 		ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data+2);
 	}
-	printfloatx("", Data[0], 5, 0, ",  ");
-	printfloatx("", Data[1], 5, 0, ",  ");
-	printfloatx("", Data[2], 5, 0, ",  ");
+	Serial.printfloatx("", Data[0], 5, 0, ",  ");
+	Serial.printfloatx("", Data[1], 5, 0, ",  ");
+	Serial.printfloatx("", Data[2], 5, 0, ",  ");
 
 	XG_OFFSET_H_READ_OFFS_USR(Data);
-	printfloatx("", Data[0], 5, 0, ",  ");
-	printfloatx("", Data[1], 5, 0, ",  ");
-	printfloatx("", Data[2], 5, 0, "");
+	Serial.printfloatx("", Data[0], 5, 0, ",  ");
+	Serial.printfloatx("", Data[1], 5, 0, ",  ");
+	Serial.printfloatx("", Data[2], 5, 0, "");
 
 	Serial.println();
 	return *this;
@@ -1272,7 +1198,6 @@ Simple_MPU6050 & Simple_MPU6050::mpu_set_bypass(unsigned char bypass_on){
 	return *this;
 }
 
-//#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 Simple_MPU6050 & Simple_MPU6050::readMagData(){
 	//read mag
 	static unsigned long _ETimer;
@@ -1410,10 +1335,9 @@ Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
 	mag[1] = (float)((((int16_t)buffer[3]) << 8) | buffer[2]);
 	mag[2] = (float)((((int16_t)buffer[5]) << 8) | buffer[4]);
 	
-	//#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) Serial.print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
-	printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
-	printfloatx(F("")            , mag[1],  15, 3, F(",   "));
-	printfloatx(F("")            , mag[2],  15, 3, F("\t"));
+	Serial.printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
+	Serial.printfloatx(F("")            , mag[1],  15, 3, F(",   "));
+	Serial.printfloatx(F("")            , mag[2],  15, 3, F("\t"));
 	//I2Cdev::writeByte(0x0C, 0x0A, 0x01); //enable the magnetometer
 	return *this;
 }
@@ -1518,12 +1442,12 @@ Simple_MPU6050 & Simple_MPU6050::setMagOffsets(float xMagB,float yMagB,float zMa
 
 Simple_MPU6050 & Simple_MPU6050::PrintMagOffsets(){
 	Serial.print(F("\n//                  X MagBias  Y MagBias  Z MagBias  X MagScale Y MagScale Z MagScale\n#define MAG_OFFSETS "));
-	printfloatx("", mag_bias[0], 7, 1, ",  ");
-	printfloatx("", mag_bias[1], 7, 1, ",  ");
-	printfloatx("", mag_bias[2], 7, 1, ",  ");
-	printfloatx("", mag_scale[0], 7, 3,",  ");
-	printfloatx("", mag_scale[1], 7, 3,",  ");
-	printfloatx("", mag_scale[2], 7, 3,"");
+	Serial.printfloatx("", mag_bias[0], 7, 1, ",  ");
+	Serial.printfloatx("", mag_bias[1], 7, 1, ",  ");
+	Serial.printfloatx("", mag_bias[2], 7, 1, ",  ");
+	Serial.printfloatx("", mag_scale[0], 7, 3,",  ");
+	Serial.printfloatx("", mag_scale[1], 7, 3,",  ");
+	Serial.printfloatx("", mag_scale[2], 7, 3,"");
 	Serial.println();
 }
 

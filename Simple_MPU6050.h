@@ -1,12 +1,29 @@
 #ifndef Simple_MPU6050_h
 #define Simple_MPU6050_h
 
-#define interruptPin 2
+//#define interruptPin 2
 #include <Wire.h>
 #include <I2Cdev.h>
 #include "DMP_Image.h"
 #include "MPU_WriteMacros.h"
 #include "MPU_ReadMacros.h"
+#ifdef __AVR__
+#include <avr/pgmspace.h>
+#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+
+#elif defined(ESP32)
+    #include <pgmspace.h>
+    #include <stdlib_noniso.h>
+#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+#else
+//#define PROGMEM /* empty */
+//#define pgm_read_byte(x) (*(x))
+//#define pgm_read_word(x) (*(x))
+//#define pgm_read_float(x) (*(x))
+//#define PSTR(STR) STR
+#define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
+#endif
+
 
 
 class Simple_MPU6050 : public I2Cdev {
@@ -78,7 +95,7 @@ class Simple_MPU6050 : public I2Cdev {
 	float mag_scale[3] = {0, 0, 0};// max-min /2
 	float dest1[3]; // hard iron correction mag biases in G  magBias * mRes * mag_sens_adj
 	float dest2[3]; // soft iron correction estimate  = ( "average" magBias(x+y+z) /3) / mag_bias
-    uint8_t DMP_Output_Rate[2];
+    uint8_t DMP_Output_Rate[2]; 
 
     int8_t I2CReadCount; //items Read 
     bool I2CWriteStatus; //  True False
@@ -89,9 +106,14 @@ class Simple_MPU6050 : public I2Cdev {
     Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);
+    //Simple_MPU6050 & Set_DMP_Output_Rate(uint8_t byteH = 0x00, uint8_t byteL = 0x01); // 100Hz Default
+    Simple_MPU6050 & Set_DMP_Output_Rate(uint16_t value = 0x01); // 100Hz Default
+    Simple_MPU6050 & Set_DMP_Output_Rate_Hz(float rate = 100); // 100Hz Default
+    Simple_MPU6050 & Set_DMP_Output_Rate_Seconds(float rate = 1); // 1Hz Default
+    Simple_MPU6050 & Set_DMP_Output_Rate_Minutes(float rate = 1); // 1 minute Default
+
 	Simple_MPU6050 & CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
 	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
-    Simple_MPU6050 & Set_DMP_Output_Rate(uint8_t byteH = 0x00, uint8_t byteL = 0x01); // 100Hz Default
     Simple_MPU6050 & Enable_Reload_of_DMP();
 	  
     Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
