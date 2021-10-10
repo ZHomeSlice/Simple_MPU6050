@@ -1,26 +1,5 @@
 #ifndef DMP_Image_h
 #define DMP_Image_h
-// These are the DMP output rates pre calculated
-// div = DMP_SAMPLE_RATE / rate - 1;  
-// div = 200 / rate - 1;  
-//  #define DMP_xxx High Bit,  Low Bit
-
-#define DMP_200Hz  0x00, 0x00
-#define DMP_100Hz  0x00, 0x01
-#define DMP_50Hz   0x00, 0x03
-#define DMP_40Hz   0x00, 0x04
-#define DMP_25Hz   0x00, 0x07
-#define DMP_20Hz   0x00, 0x09
-#define DMP_10Hz   0x00, 0x13
-#define DMP_5Hz    0x00, 0x27
-#define DMP_1Hz    0x00, 0xC7
-#define DMP_1Sec   0x00, 0xC7
-#define DMP_10Sec  0x07, 0xCF
-#define DMP_60Sec  0x2E, 0xDF
-#define DMP_1Min   0x2E, 0xDF
-#define DMP_5Min   0xEA, 0x5F 
-
-
 
 /* These defines are copied from dmpDefaultMPU6050.c in the general MPL
    releases. These defines may change for each DMP image, so be sure to modify
