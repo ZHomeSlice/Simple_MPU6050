@@ -1,3 +1,27 @@
+/* ============================================
+  I2Cdev device library code is placed under the MIT license
+  Copyright (c) 2021 Homer Creutz
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+  ===============================================
+*/
+
 /* 2 MPUXXXX Example
     These can be any MPU MPU6050, MPU6500, MPU9150, MPU9155, MPU9250 ETC...
     Attach 2 MPU's to the I2C buss
@@ -78,20 +102,7 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //***************************************************************************************
 //******************                Setup and Loop                 **********************
 //***************************************************************************************
-/*
-   #define DMP_200Hz  0x00, 0x00
-   #define DMP_100Hz  0x00, 0x01
-   #define DMP_50Hz  0x00, 0x03
-   #define DMP_40Hz 0x00, 0x04
-   #define DMP_25Hz 0x00, 0x07
-   #define DMP_20Hz 0x00, 0x09
-   #define DMP_10Hz 0x00, 0x13
-   #define DMP_5Hz  0x00, 0x27
-   #define DMP_1Hz 0x00, 0xC7
-   #define DMP_1sec 0x00, 0xC7
-   #define DMP_10sec  0x07, 0xCF
-   #define DMP_60sec  0x2E, 0xDF
-*/
+
 void setup() {
 
   uint8_t val;
@@ -107,7 +118,10 @@ void setup() {
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS).Set_DMP_Output_Rate(DMP_1Hz);
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS)
+  mpu.Set_DMP_Output_Rate_Hz(5);           // Set the DMP output rate from 200Hz to 5 Minutes.
+  //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
+  //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute
   pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);

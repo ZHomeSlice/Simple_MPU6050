@@ -1,7 +1,29 @@
+/* ============================================
+  I2Cdev device library code is placed under the MIT license
+  Copyright (c) 2021 Homer Creutz
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+  ===============================================
+*/
 #ifndef Simple_MPU6050_h
 #define Simple_MPU6050_h
 
-//#define interruptPin 2
 #include <Wire.h>
 #include <I2Cdev.h>
 #include "DMP_Image.h"
@@ -9,6 +31,7 @@
 #include "MPU_ReadMacros.h"
 #ifdef __AVR__
 #include <avr/pgmspace.h>
+#define interruptPin 2
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 
 #elif defined(ESP32)
@@ -23,8 +46,6 @@
 //#define PSTR(STR) STR
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #endif
-
-
 
 class Simple_MPU6050 : public I2Cdev {
     static void nothing(void) {};
