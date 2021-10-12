@@ -374,14 +374,14 @@ Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Hz(float rate){  // 100 HZ 
 	Set_DMP_Output_Rate(div);
 	return *this;
 }
-Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Seconds(float rate){  // 100 HZ Default
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Seconds(float rate){  // 1Hz Default
     rate = (rate>300) ? 300 : rate;
     rate = (rate<0) ? 0 : rate;
 	uint16_t div = (uint16_t)( 200 / (1/rate) - 1);
 	Set_DMP_Output_Rate(div);
 	return *this;
 }
-Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Minutes(float rate){  // 100 HZ Default
+Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Minutes(float rate){  // 1 minute Default
     rate = (rate>5) ? 5 : rate;
     rate = (rate<0) ? 0 : rate;
 	Set_DMP_Output_Rate_Seconds(rate/60);
