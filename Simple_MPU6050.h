@@ -25,7 +25,7 @@
 #define Simple_MPU6050_h
 
 #include <Wire.h>
-#include <I2Cdev.h>
+#include "I2Cdev.h"
 #include "DMP_Image.h"
 #include "MPU_WriteMacros.h"
 #include "MPU_ReadMacros.h"
