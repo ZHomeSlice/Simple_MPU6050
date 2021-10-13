@@ -120,14 +120,15 @@ uint8_t Simple_MPU6050::CheckForInterrupt(void) {
 //***************************************************************************************
 /**
 @brief      Reads Newest packet from fifo then on success triggers Callback routine
+returns true if packet is captured and stored in gyro[3], accel[3], quat[4] variables 
 */
-Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
+uint8_t Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
 	if (CheckInterrupt && !CheckForInterrupt()) return *this;
 	if (!dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) {
-		return *this;
+		return 0;
 	}
 	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, &sensor_timestamp);
-	return *this;
+	return 1;
 }
 
 /* Compare the above dmp_read_fifo function to the below dmp_read_fifo funciton.
