@@ -101,10 +101,15 @@ void setup() {
 }
 
 void loop() {
-  mpu.dmp_read_fifo(false); // false = no interrupt pin attachment required.
+  static unsigned long FIFO_DelayTimer;
+  if ((millis() - FIFO_DelayTimer) >= (99)) { // 99ms insted of 100ms to start polling the MPU 1ms prior to data arriving.
+    if( mpu.dmp_read_fifo(false)) FIFO_DelayTimer= millis() ; // false = no interrupt pin attachment required and When data arrives in the FIFO Buffer reset the timer
+  }
+  // dmp_read_fifo(false) does the following
   // Tests for Data in the FIFO Buffer
   // when it finds data it runs the mpu.on_FIFO(print_Values)
-  // functin which we set run the print_Values Function
+  // the print_Values functin which we set run the PrintAllValues Function
+  // When data is caputred dmp_read_fifo will return true.
   // The print_Values function MUST have the following variables available to attach data
   // void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp)
   // Variables:
