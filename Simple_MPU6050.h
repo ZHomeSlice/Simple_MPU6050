@@ -31,21 +31,30 @@
 #include "MPU_ReadMacros.h"
 #ifdef __AVR__
 #include <avr/pgmspace.h>
+#ifndef interruptPin
 #define interruptPin 2
+#endif
+#define if(interruptPin > 0)Interupt_Attach_Function 	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
-
 #elif defined(ESP32)
     #include <pgmspace.h>
     #include <stdlib_noniso.h>
+    #ifndef interruptPin
+    #define interruptPin 15
+    #endif
+    #define if(interruptPin > 0) Interupt_Attach_Function attachInterrupt(digitalPinToInterrupt(interruptPin),  [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #else
-//#define PROGMEM /* empty */
-//#define pgm_read_byte(x) (*(x))
-//#define pgm_read_word(x) (*(x))
-//#define pgm_read_float(x) (*(x))
-//#define PSTR(STR) STR
+
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #endif
+
+#define DPRINTBINL(Num) for (uint16_t i=0;i<(sizeof((uint16_t)Num)*8);i++) Serial.write(((Num >> i) & 1) == 1 ? '1' : '0'); // Prints a binary number with following Placeholder Zeros  (Automatic Handling)
+#define DPRINTBINLX(S,Num,nl) Serial.print(F(S)); for (uint16_t i=0;i<(sizeof((uint16_t)Num)*8);i++) Serial.write(((Num >> i) & 1) == 1 ? '1' : '0'); if(nl)Serial.println(); // Prints a binary number with following Placeholder Zeros  (Automatic Handling)
+#define DPRINTBIN(Num) for (uint32_t t = (1UL<< ((sizeof(Num)*8)-1)); t; t >>= 1) Serial.write(Num  & t ? '1' : '0'); // Prints a binary number with leading zeros (Automatic Handling)
+#define DPRINTHEX(Num) Serial.print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
+#define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
+#define ShowValue(Name, FunctionD) FunctionD; Serial.print(Name); Serial.print(" = 0x"); DPRINTHEX(D); Serial.print(" = 0B"); DPRINTBIN(D); Serial.println();
 
 class Simple_MPU6050 : public I2Cdev {
     static void nothing(void) {};
@@ -53,16 +62,7 @@ class Simple_MPU6050 : public I2Cdev {
     typedef void (*_ON_FIFO_CB_PTR)(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp); // Create a type to point to a function.
     _ON_FIFO_CB_PTR on_FIFO_cb = nothing;
   public:
-/* typedef struct SensorList_s {
-      int16_t ax ;
-      int16_t ay ;
-      int16_t az ;
-      int16_t Temp;
-      int16_t gx ;
-      int16_t gy ;
-      int16_t gz ;
-    };
- */
+
     struct SensorList_s {
       int16_t ax ;
       int16_t ay ;
@@ -74,17 +74,11 @@ class Simple_MPU6050 : public I2Cdev {
     };
 
 	float mx, my, mz; // variables to hold latest magnetometer data values
-/*
-    typedef union AccelGyro_u {
-      SensorList_s V;
-      int16_t intData[sizeof(SensorList_s) / 2];
-    };
-*/
+
     union AccelGyro_u {
       SensorList_s V;
       int16_t intData[sizeof(SensorList_s) / 2];
     };
-
 
 	const float radians_to_degrees = 180.0 / M_PI;
 	uint8_t HIGH_SENS  = 1; // 0 = 14-BIT, 1 = 16-BIT 
@@ -117,26 +111,23 @@ class Simple_MPU6050 : public I2Cdev {
 	float dest1[3]; // hard iron correction mag biases in G  magBias * mRes * mag_sens_adj
 	float dest2[3]; // soft iron correction estimate  = ( "average" magBias(x+y+z) /3) / mag_bias
     uint8_t DMP_Output_Rate[2]; 
-
     int8_t I2CReadCount; //items Read 
     bool I2CWriteStatus; //  True False
 	int16_t sax_,say_,saz_,sgx_,sgy_,sgz_;
+
 
     //Startup Functins MPU
     Simple_MPU6050(); // Constructor
     Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);
-    //Simple_MPU6050 & Set_DMP_Output_Rate(uint8_t byteH = 0x00, uint8_t byteL = 0x01); // 100Hz Default
     Simple_MPU6050 & Set_DMP_Output_Rate(uint16_t value = 0x01); // 100Hz Default
     Simple_MPU6050 & Set_DMP_Output_Rate_Hz(float rate = 100); // 100Hz Default
     Simple_MPU6050 & Set_DMP_Output_Rate_Seconds(float rate = 1); // 1Hz Default
     Simple_MPU6050 & Set_DMP_Output_Rate_Minutes(float rate = 1); // 1 minute Default
-
 	Simple_MPU6050 & CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
 	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
     Simple_MPU6050 & Enable_Reload_of_DMP();
-	  
     Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
 	Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate = 1);
 	Simple_MPU6050 & resetOffset();
@@ -156,10 +147,11 @@ class Simple_MPU6050 : public I2Cdev {
     uint8_t CheckForInterrupt(void);
     int16_t getFIFOCount();
 	int8_t GetCurrentFIFOPacket(uint8_t *data, uint8_t length);
-    Simple_MPU6050 & dmp_read_fifo(uint8_t CheckInterrupt = 1); // 0 = No interrupt needed to try to get data
-    uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic Send and receive
+    Simple_MPU6050 & dmp_read_fifo(uint8_t CheckInterrupt = 1); // 0 = No interrupt needed to try to get data 
+    uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic receive packet
+
     /* register management functions and Helper Macros:
-        See MPU_ReadMacros.h and MPU_WriteMacros.h for a complete set of Register management Macros
+       See MPU_ReadMacros.h and MPU_WriteMacros.h for a complete set of Register management Macros
        Class functions Macros to access Just about every needed register bit, bits, Bytes and ints ever
        needed to manipulate the registers of the MPU.
        Macros are in all CAPS for with underscores for spacing
@@ -171,7 +163,7 @@ class Simple_MPU6050 : public I2Cdev {
     */
     // using the above mentioned Helper Macros, Every register as needed down to bit level is represented in the Simple_MPU6050 class
     // register management functions
-	// uint8_t AltAddress, 
+
 	// Wrappered I2Cdev read functions
     Simple_MPU6050 & MPUi2cRead(uint8_t regAddr,  uint8_t length, uint8_t bitNum, uint8_t *data);
     Simple_MPU6050 & MPUi2cRead(uint8_t AltAddress,uint8_t regAddr,  uint8_t length, uint8_t bitNum, uint8_t *data);
@@ -200,7 +192,6 @@ class Simple_MPU6050 : public I2Cdev {
 
 
     // helper math functions
-
     Simple_MPU6050 & SetAccel(VectorInt16 *v, int16_t *accel);
     Simple_MPU6050 & GetQuaternion(Quaternion *q, const int32_t* qI);
     Simple_MPU6050 & GetLinearAccel(VectorInt16 *v, VectorInt16 *vRaw, VectorFloat *gravity);
@@ -221,7 +212,7 @@ class Simple_MPU6050 : public I2Cdev {
     // Default data gathering functions for program revisions
     void view_Vital_MPU_Registers();
     bool view_DMP_firmware_Instance(uint16_t  length);
-	void GetActiveOffsets(int16_t *Data);
+	Simple_MPU6050 &  GetActiveOffsets(int16_t *Data);
 	Simple_MPU6050 & PrintActiveOffsets(); // See the results of the Calibration
 	Simple_MPU6050 & PrintActiveOffsets(uint8_t MPU6500andMPU9250); // See the results of the Calibration
 	Simple_MPU6050 & PrintActiveOffsets_MPU6500();

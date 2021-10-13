@@ -48,6 +48,7 @@ Simple_MPU6050::Simple_MPU6050() {
 	SetAddress(MPU6050_DEFAULT_ADDRESS);
 	packet_length = 28;
 	/*
+	packet_length = 0;
 	packet_length += 6;//DMP_FEATURE_SEND_RAW_ACCEL
 	packet_length += 6;//DMP_FEATURE_SEND_RAW_GYRO
 	packet_length += 16;//DMP_FEATURE_6X_LP_QUAT
@@ -55,12 +56,17 @@ Simple_MPU6050::Simple_MPU6050() {
 	_maxPackets = floor(512 / packet_length); // MPU 9250 can only handle 512 bytes of data in the FIFO
 }
 
+/**
+@brief      Set Device Address
+*/
 Simple_MPU6050 &  Simple_MPU6050::SetAddress(uint8_t address) {
 	devAddr = address;
-
 	return *this;
 }
 
+/**
+@brief      Returns Device Address
+*/
 uint8_t  Simple_MPU6050::CheckAddress() {
 	return devAddr;
 }
@@ -85,7 +91,6 @@ Simple_MPU6050 & Simple_MPU6050::full_reset_fifo(void) { // Official way to rese
 	return *this;
 }
 
-
 /**
 @brief      Start and Stop DMP int pin triggering  //   1  Enable, 0 = Disable
 */
@@ -95,12 +100,9 @@ Simple_MPU6050 & Simple_MPU6050::DMP_InterruptEnable(uint8_t Data) {
 	return *this;
 };
 
-
 //***************************************************************************************
 //**********************      Overflow Protection functions        **********************
 //***************************************************************************************
-
-
 /**
 @brief      manages properly testing interrupt trigger from interrupt pin
 */
@@ -112,9 +114,6 @@ uint8_t Simple_MPU6050::CheckForInterrupt(void) {
 	interrupts ();
 	return InteruptTriggered;
 }
-
-
-
 
 //***************************************************************************************
 //**********************              FIFO functions               **********************
@@ -130,8 +129,48 @@ Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
 	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, &sensor_timestamp);
 	return *this;
 }
- 
 
+/* Compare the above dmp_read_fifo function to the below dmp_read_fifo funciton.
+ * The above funciton triggers a callback funciton only when the data is retrieved 
+ * This allows you to define a specific function at the time of setup to be used
+ * The result code is a simpler setup
+ * you could use the one below like
+ * if (dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) { Do Something;}
+ * to get similar results 
+ */
+/**
+@brief      Get the Newest packet from the FIFO. FIFO Buffer will be empty awaiting for next packet
+*/
+uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
+	/* Get a packet. */
+	uint8_t fifo_data[MAX_PACKET_LENGTH];
+	if(GetCurrentFIFOPacket(fifo_data, packet_length)){
+
+	//	FIFO_READ(packet_length, fifo_data);
+		*timestamp = micros();
+	//	fifo_count -= packet_length;
+		/* Parse DMP packet. */
+		uint8_t ii = 0;
+		quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
+		quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
+		quat[2] = ((int32_t)fifo_data[8] << 24) | ((int32_t)fifo_data[9] << 16) | ((int32_t)fifo_data[10] << 8) | fifo_data[11];
+		quat[3] = ((int32_t)fifo_data[12] << 24) | ((int32_t)fifo_data[13] << 16) | ((int32_t)fifo_data[14] << 8) | fifo_data[15];
+		ii += 16;
+		accel[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
+		accel[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
+		accel[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
+		ii += 6;
+		gyro[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
+		gyro[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
+		gyro[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
+		return 1;
+	}
+	return 0;
+}
+ 
+/**
+@brief      Gets FIFO byte count
+*/
  int16_t Simple_MPU6050::getFIFOCount(){
 	int16_t fifo_count;
 	FIFO_COUNTH_READ_FIFO_CNT(&fifo_count);
@@ -139,7 +178,10 @@ Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
  }
 
 
-/** Get latest byte from FIFO buffer no matter how much time has passed.
+/** 
+ @brief Get latest byte from FIFO buffer no matter how much time has passed.
+*/
+/* ================================================================
  * ===                  GetCurrentFIFOPacket                    ===
  * ================================================================
  * Returns 1) when nothing special was done
@@ -179,35 +221,7 @@ Simple_MPU6050 & Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
      return 1;
 }
 
-/**
-@brief      Get the Newest packet from the FIFO. FIFO Buffer will be empty awaiting for next packet
-*/
-uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-	/* Get a packet. */
-	uint8_t fifo_data[MAX_PACKET_LENGTH];
-	if(GetCurrentFIFOPacket(fifo_data, packet_length)){
 
-	//	FIFO_READ(packet_length, fifo_data);
-		*timestamp = micros();
-	//	fifo_count -= packet_length;
-		/* Parse DMP packet. */
-		uint8_t ii = 0;
-		quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
-		quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
-		quat[2] = ((int32_t)fifo_data[8] << 24) | ((int32_t)fifo_data[9] << 16) | ((int32_t)fifo_data[10] << 8) | fifo_data[11];
-		quat[3] = ((int32_t)fifo_data[12] << 24) | ((int32_t)fifo_data[13] << 16) | ((int32_t)fifo_data[14] << 8) | fifo_data[15];
-		ii += 16;
-		accel[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
-		accel[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
-		accel[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
-		ii += 6;
-		gyro[0] = ((int16_t)fifo_data[ii + 0] << 8) | fifo_data[ii + 1];
-		gyro[1] = ((int16_t)fifo_data[ii + 2] << 8) | fifo_data[ii + 3];
-		gyro[2] = ((int16_t)fifo_data[ii + 4] << 8) | fifo_data[ii + 5];
-		return 1;
-	}
-	return 0;
-}
 
 //***************************************************************************************
 //**********************         i2cdev wrapper functions          **********************
@@ -400,12 +414,10 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_
 	return *this;
 }
 #define CompassCheck(Cnt)   {uint8_t D; Serial.print(F("\n")); Serial.print(Cnt); Serial.print(F(" Read AKM Who am I: ")); Serial.print(I2Cdev::readBytes(0x0C,0,1,&D));Serial.print(F(" Value = 0x"));Serial.println(D);}
-//#define PWR_MGMT_1_WRITE_DEVICE_RESET(...) MPUi2cWrite(0x6B, 1, 7, 1);delay(100);MPUi2cWrite(0x6A, 4, 3, 0b1111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
 Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
-	uint8_t val;
 	TestConnection(1);
 	Serial.println();
-	PWR_MGMT_1_WRITE_DEVICE_RESET();			//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
+	PWR_MGMT_1_WRITE_DEVICE_RESET();				//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
 	MPUi2cWriteByte(0x6B, 0x00);
 	MPUi2cWriteByte(0x6C, 0x00);
 	MPUi2cWriteByte(0x1A, 0x03);
@@ -420,15 +432,15 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 		write_mem(D_0_22, 2, DMP_Output_Rate);      // Modify the Firmware Chunk for DMP output Rate  
 		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
-	resetOffset();	// Load Calibration offset values into MPU
+	resetOffset();									// Load Calibration offset values into MPU
 	if(CalibrateMode)return *this;
 	PrintActiveOffsets();
 	AKM_Init();
-	MPUi2cWriteByte(0x6A, 0xC0);				// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
-	MPUi2cWriteByte(0x38, 0x02);				// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
+	MPUi2cWriteByte(0x6A, 0xC0);					// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
+	MPUi2cWriteByte(0x38, 0x02);					// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
 	dmp_on = 1;
 #ifdef interruptPin
-	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+    Interupt_Attach_Function
 #endif
 	//These are the features the above code initialized for you by default (ToDo Allow removal of one or more Features)
 	dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_RAW_GYRO |  DMP_FEATURE_SEND_CAL_GYRO; // These are Fixed into the DMP_Image and Can't be change easily at this time.
@@ -448,6 +460,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(int16_t ax_, int16_t ay_, int16_t 
 	sgy_ = gy_;
 	sgz_ = gz_;
 	CalibrateMPU(10);
+	return *this;
 }
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
@@ -486,14 +499,15 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 	
 	uint16_t  ii;
 	uint16_t  this_write;
-
-	uint16_t bankNum = 0;
-	/* Must divide evenly into st.hw->bank_size to avoid bank crossings. */
 	#define LOAD_CHUNK  (16)
-	uint8_t cur[LOAD_CHUNK], tmp[2];
+	#ifdef DEBUG
+	uint8_t cur[LOAD_CHUNK];
+	uint16_t bankNum = 0;
+	#endif
+	/* Must divide evenly into st.hw->bank_size to avoid bank crossings. */
 	uint8_t firmware_chunk[LOAD_CHUNK];
 	if (DMP_Loaded)return *this; /* DMP should only be loaded once. */
-	if (!firmware) *this;
+	if (!firmware) return *this;
 
 	for (ii = 0; ii < length; ii += this_write) {
 		this_write = min(LOAD_CHUNK, length - ii);
@@ -531,7 +545,6 @@ returns 1 on success
 stops or returns 0 on fail
 */
 uint8_t Simple_MPU6050::TestConnection(int Stop ) {
-	byte x;
 	Wire.beginTransmission(CheckAddress());
 	if(Wire.endTransmission() != 0){
 		if(Stop == 2){
@@ -602,12 +615,7 @@ void Simple_MPU6050::view_Vital_MPU_Registers() {
 	"reset_fifo();/n"));
 }
 
-#define DPRINTBIN(Num) for (uint32_t t = (1UL<< (sizeof(Num)*8)-1); t; t >>= 1) Serial.write(Num  & t ? '1' : '0'); // Prints a binary number with leading zeros (Automatic Handling)
-#define DPRINTHEX(Num) Serial.print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
-#define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
-
 void view_MPU_Startup_Registers() {
-	uint8_t val;
 	// Reset code for your convenience:
 	ShowByte(0x23);
 	ShowByte(0x1C);
@@ -623,7 +631,7 @@ void view_MPU_Startup_Registers() {
 
 
 
-void Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
+Simple_MPU6050 &  Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
 	if(WhoAmI < 0x38)  A_OFFSET_H_READ_A_OFFS(Data);
 	else {
@@ -632,6 +640,7 @@ void Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
 		ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data+2);
 	}
 	XG_OFFSET_H_READ_OFFS_USR(Data + 3);
+	return *this;
 }
 
 Simple_MPU6050 & Simple_MPU6050::PrintActiveOffsets( ) {
@@ -1044,8 +1053,6 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	uint8_t DirectAccessToMag = 0;
 	if(!DirectAccessToMag){
 
-		#define DPRINTBINL(Num) for (int i=0;i<(sizeof(Num)*8);i++) Serial.write(((Num >> i) & 1) == 1 ? '1' : '0'); // Prints a binary number with following Placeholder Zeros  (Automatic Handling)
-		#define DPRINTBINLX(S,Num,nl) Serial.print(F(S)); for (int i=0;i<(sizeof(Num)*8);i++) Serial.write(((Num >> i) & 1) == 1 ? '1' : '0'); if(nl)Serial.println(); // Prints a binary number with following Placeholder Zeros  (Automatic Handling)
 		int8_t Num;
 		// Configure the magnetometer for continuous read and highest resolution
 		// set Mscale bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL register,
@@ -1262,94 +1269,12 @@ Simple_MPU6050 & Simple_MPU6050::readMagData(){
 
 
 
-	  // Calculate heading when the magnetometer is level, then correct for signs of axis.
-	  // Atan2() automatically check the correct formula taking care of the quadrant you are in
-	//  float heading = atan2(mag[1], mag[0]) * radians_to_degrees;
 
-	  // Once you have your heading, you must then add your 'Declination Angle',
-	  // which is the 'Error' of the magnetic field in your location. Mine is 0.0404
-	  // Find yours here: http://www.magnetic-declination.com/
-	  
-	  // Output the data via the serial port.
-/*
-	Serial.printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
-	Serial.printfloatx(F("")            , mag[1],  15, 3, F(",   "));
-	Serial.printfloatx(F("")            , mag[2],  15, 3, F(",   "));
-	Serial.printfloatx(F("Deg")            , heading,  15, 3, F("    \t\t"));
-	for (int i=0; i<abs(heading); i++)	Serial.print("*");
-	Serial.print("\n");
-*/
-	//Serial.printfloatx(F("mag xyz")     , xmag[0],  15, 3, F(",   "));
-	//Serial.printfloatx(F("")            , xmag[1],  15, 3, F(",   "));
-	//Serial.printfloatx(F("")            , xmag[2],  15, 3, F("\t"));
-	/*
-	uint8_t rawData[6];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
-	Serial.print("$");
-	if(AKM_ST1_READ_DATA_READY(akm_addr, &TVal).TVal){	// wait for magnetometer data ready bit to be set
-	Serial.print("^");
-	//  if(readByte(AK8963_ADDRESS, AK8963_ST1) & 0x01) { // wait for magnetometer data ready bit to be set
-	//		readBytes(AK8963_ADDRESS, AK8963_XOUT_L, 7, &rawData[0]);  // Read the six raw data and ST2 registers sequentially into data array
-	//		uint8_t c = rawData[6]; // End data read by reading ST2 register
-	if(!AKM_ST2_READ_SENSOR_OVERFLOW(akm_addr,&TVal).TVal){// Check if magnetic sensor overflow set, if not then report data}
-	Serial.print("~");
-	//		if(!(c & 0x08)) { // Check if magnetic sensor overflow set, if not then report data
-	//			AKM_DATA_READ_RAW_COMPASS(akm_addr,magCount);
-	//			AKM_DATA_READ_RAW_COMPASS_SWAP(akm_addr,magCount);
-	AKM_DATA_READ_RAW_COMPASS_DATA(akm_addr,rawData); // Read the six raw data
-	magCount[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;  // Turn the MSB and LSB into a signed 16-bit value
-	magCount[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  // Data stored as little Endian
-	magCount[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-	
-	mag[0] = (float)magCount[0]*mRes*mag_sens_adj[0] - magBias[0];  // get actual magnetometer value, this depends on scale being set
-	mag[1] = (float)magCount[1]*mRes*mag_sens_adj[1] - magBias[1];
-	mag[2] = (float)magCount[2]*mRes*mag_sens_adj[2] - magBias[2];
-	}
-	}
-	//AKM_CNTL_WRITE_SINGLE_MEAS_MODE(akm_addr,HIGH_SENS);// Prep for next reading
-	*/
 	return *this;
 }
 
-
-#define DPRINTBIN(Num) for (uint32_t t = (1UL<< (sizeof(Num)*8)-1); t; t >>= 1) Serial.write(Num  & t ? '1' : '0'); // Prints a binary number with leading zeros (Automatic Handling)
-#define DPRINTHEX(Num) Serial.print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
-#define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
-#define ShowValue(Name, FunctionD) FunctionD; Serial.print(Name); Serial.print(" = 0x"); DPRINTHEX(D); Serial.print(" = 0B"); DPRINTBIN(D); Serial.println();
 // Work in Progress:
 Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
-	//read mag
-	uint8_t D;
-	uint8_t rawData[8];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
-	/*
-	//  readBytes(AK8963_ADDRESS, AK8963_XOUT_L, 7, &rawData[0]);  // Read the six raw data and ST2 registers sequentially into data array
-	// I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);
-	// I2C_SLV0_ADDR_WRITE_I2C_ID_0(0x0C);
-	ShowValue("I2C_MST_CTRL_READ_MULT_MST_EN", I2C_MST_CTRL_READ_MULT_MST_EN(D));
-	ShowValue("I2C_MST_CTRL_READ_WAIT_FOR_ES", I2C_MST_CTRL_READ_WAIT_FOR_ES(D));
-	ShowValue("I2C_MST_CTRL_READ_SLV_3_FIFO_EN", I2C_MST_CTRL_READ_SLV_3_FIFO_EN(D));
-	ShowValue("I2C_MST_CTRL_READ_I2C_MST_P_NSR", I2C_MST_CTRL_READ_I2C_MST_P_NSR(D));
-	ShowValue("I2C_MST_CTRL_READ_I2C_MST_CLK", I2C_MST_CTRL_READ_I2C_MST_CLK(D));
-
-	//  writeByte(MPU9250_ADDRESS, I2C_SLV0_ADDR, 0x0C | 0x80);    // Set the I2C slave address of AK8963 and set for read.
-	// I2C_SLV0_ADDR_WRITE_I2C_SLV0_RNW(1);
-	// I2C_SLV0_ADDR_WRITE_I2C_ID_0(0x0C);
-	ShowValue("I2C_SLV0_ADDR_READ_I2C_SLV0_RNW", I2C_SLV0_ADDR_READ_I2C_SLV0_RNW(D));
-	ShowValue("I2C_SLV0_ADDR_READ_I2C_ID_0", I2C_SLV0_ADDR_READ_I2C_ID_0(D));
-
-
-	//  writeByte(MPU9250_ADDRESS, I2C_SLV0_REG, AKM_REG_ST1);             // I2C slave 0 register address from where to begin data transfer
-	//  I2C_SLV0_REG_WRITE_I2C_SLV0_REG(AKM_REG_ST1);
-	ShowValue("I2C_SLV0_REG_READ_I2C_SLV0_REG", I2C_SLV0_REG_READ_I2C_SLV0_REG(D));
-
-	//  writeByte(MPU9250_ADDRESS, I2C_SLV0_CTRL, 0x88);                     // Enable I2C and read 7 bytes
-	// I2C_SLV0_CTRL_WRITE_I2C_SLV0_EN(1);
-	// I2C_SLV0_CTRL_WRITE_I2C_SLV0_LENG(8);
-	ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_EN", I2C_SLV0_CTRL_READ_I2C_SLV0_EN(D));
-	ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_BYTE_SW", I2C_SLV0_CTRL_READ_I2C_SLV0_BYTE_SW(D));
-	ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS", I2C_SLV0_CTRL_READ_I2C_SLV0_REG_DIS(D));
-	ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_GRP", I2C_SLV0_CTRL_READ_I2C_SLV0_GRP(D));
-	ShowValue("I2C_SLV0_CTRL_READ_I2C_SLV0_LENG", I2C_SLV0_CTRL_READ_I2C_SLV0_LENG(D));
-	*/
 	delay(2);
 	//readBytes(MPU9250_ADDRESS, EXT_SENS_DATA_00, 8, &rawData[0]);        // Read the x-, y-, and z-axis calibration values
 	EXT_SENS_DATA_READ_LENGTH(8,buffer);
@@ -1374,12 +1299,12 @@ Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
 //https://appelsiini.net/2018/calibrate-magnetometer/
 	uint8_t DelayCnt = 5;
 	uint8_t Ready;
-	uint16_t ii = 0, sample_count = 0, PCount = 0;
+	uint16_t sample_count = 0, PCount = 0;
 //	int32_t mag_scale[3] = {0, 0, 0};
 	int16_t mag_max[3] = {-32767, -32767, -32767};
 	int16_t mag_min[3] = {32767, 32767, 32767};
 	int16_t mag_temp[3] = {0, 0, 0};
-	int16_t RawCompass[3];
+	 
 	Serial.println(F("Mag Calibration: Wave device in a figure eight until done! @ 2Minutes"));
 	delay(1000);
 	Serial.println(F("Ready"));
@@ -1418,10 +1343,6 @@ Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
 	Serial.print(F("sample Count = "));
 	Serial.println(sample_count);
 
-	//    Serial.println("mag x min/max:"); Serial.println(mag_max[0]); Serial.println(mag_min[0]);
-	//    Serial.println("mag y min/max:"); Serial.println(mag_max[1]); Serial.println(mag_min[1]);
-	//    Serial.println("mag z min/max:"); Serial.println(mag_max[2]); Serial.println(mag_min[2]);
-
 	// Get hard iron correction
 	mag_bias[0]  = (float)(mag_max[0] + mag_min[0])/2.0;  // get average x mag bias in counts
 	mag_bias[1]  = (float)(mag_max[1] + mag_min[1])/2.0;  // get average y mag bias in counts
@@ -1458,7 +1379,7 @@ Simple_MPU6050 & Simple_MPU6050::setMagOffsets(float xMagB,float yMagB,float zMa
 	mag_scale[0] = (float)xMagS;
 	mag_scale[1] = (float)yMagS;
 	mag_scale[2] = (float)zMagS;
-
+	return *this; 
 }
 
 
@@ -1471,44 +1392,8 @@ Simple_MPU6050 & Simple_MPU6050::PrintMagOffsets(){
 	Serial.printfloatx("", mag_scale[1], 7, 3,",  ");
 	Serial.printfloatx("", mag_scale[2], 7, 3,"");
 	Serial.println();
+	return *this;
 }
-
-/*
-Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
-uint16_t ii = 0, sample_count = 0;
-int32_t mag_bias[3] = {0, 0, 0};
-int16_t mag_max[3] = {-32767, -32767, -32767}, mag_min[3] = {32767, 32767, 32767};
-
-Serial.println("Mag Calibration: Wave device in a figure eight until done!");
-delay(4000);
-
-sample_count = 64;
-for(ii = 0; ii < sample_count; ii++) {
-while(!AKM_ST1_READ_DATA_READY(akm_addr, &TVal).TVal) delay(5);
-readMagData();  // Read the mag data
-for (int jj = 0; jj < 3; jj++) {
-if(mag[jj] > mag_max[jj]) mag_max[jj] = mag[jj];
-if(mag[jj] < mag_min[jj]) mag_min[jj] = mag[jj];
-}
-delay(135);  // at 8 Hz ODR, new mag data is available every 125 ms
-}
-
-//    Serial.println("mag x min/max:"); Serial.println(mag_max[0]); Serial.println(mag_min[0]);
-//    Serial.println("mag y min/max:"); Serial.println(mag_max[1]); Serial.println(mag_min[1]);
-//    Serial.println("mag z min/max:"); Serial.println(mag_max[2]); Serial.println(mag_min[2]);
-
-mag_bias[0]  = (mag_max[0] + mag_min[0])/2;  // get average x mag bias in counts
-mag_bias[1]  = (mag_max[1] + mag_min[1])/2;  // get average y mag bias in counts
-mag_bias[2]  = (mag_max[2] + mag_min[2])/2;  // get average z mag bias in counts
-
-magBias[0] = (float) mag_bias[0]*mRes*mag_sens_adj[0];  // save mag biases in G for main program
-magBias[1] = (float) mag_bias[1]*mRes*mag_sens_adj[1];
-magBias[2] = (float) mag_bias[2]*mRes*mag_sens_adj[2];
-
-Serial.println("Mag Calibration done!");
-return *this;
-}
-*/
 
 Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 	uint8_t D;
@@ -1605,17 +1490,3 @@ Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 }
 
 
-/*
-// Returns temperature in DegC, resolution is 0.01 DegC. Output value of
-// "5123" equals 51.23 DegC.
-int32_t bmp280_compensate_T(int32_t adc_T)
-{
-int32_t var1, var2, T;
-var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
-var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
-t_fine = var1 + var2;
-T = (t_fine * 5 + 128) >> 8;
-return T;
-}
-
-*/
