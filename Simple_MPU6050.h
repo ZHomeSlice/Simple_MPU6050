@@ -147,7 +147,7 @@ class Simple_MPU6050 : public I2Cdev {
     uint8_t CheckForInterrupt(void);
     int16_t getFIFOCount();
 	int8_t GetCurrentFIFOPacket(uint8_t *data, uint8_t length);
-    Simple_MPU6050 & dmp_read_fifo(uint8_t CheckInterrupt = 1); // 0 = No interrupt needed to try to get data 
+    uint8_t dmp_read_fifo(uint8_t CheckInterrupt = 1); // 0 = No interrupt needed to try to get data 
     uint8_t dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp);// Basic receive packet
 
     /* register management functions and Helper Macros:
