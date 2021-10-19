@@ -123,7 +123,7 @@ uint8_t Simple_MPU6050::CheckForInterrupt(void) {
 returns true if packet is captured and stored in gyro[3], accel[3], quat[4] variables 
 */
 uint8_t Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
-	if (CheckInterrupt && !CheckForInterrupt()) return *this;
+	if (CheckInterrupt && !CheckForInterrupt()) return 0;
 	if (!dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) {
 		return 0;
 	}
