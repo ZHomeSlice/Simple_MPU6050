@@ -34,7 +34,7 @@
 #ifndef interruptPin
 #define interruptPin 2
 #endif
-#define if(interruptPin > 0)Interupt_Attach_Function 	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+#define Interupt_Attach_Function  if(interruptPin > 0)	attachInterrupt(digitalPinToInterrupt(interruptPin), [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #elif defined(ESP32)
     #include <pgmspace.h>
@@ -42,10 +42,10 @@
     #ifndef interruptPin
     #define interruptPin 15
     #endif
-    #define if(interruptPin > 0) Interupt_Attach_Function attachInterrupt(digitalPinToInterrupt(interruptPin),  [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
+    #define  Interupt_Attach_Function  if(interruptPin > 0) attachInterrupt(digitalPinToInterrupt(interruptPin),  [] {mpuInterrupt = true;}, RISING); //NOTE: "[]{mpuInterrupt = true;}" Is a complete funciton without a name. It is handed to the callback of attachInterrupts Google: "Lambda anonymous functions"
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #else
-
+#define Interupt_Attach_Function
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); Serial.print(F(" ")); Serial.print(Variable,Precision);Serial.print(EndTxt);//Name,Variable,Spaces,Precision,EndTxt
 #endif
 
