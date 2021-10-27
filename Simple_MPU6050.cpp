@@ -1051,7 +1051,8 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	Serial.println(mag_sens_adj_F[2]);
 	
 	delay(10);
-	uint8_t DirectAccessToMag = 0;
+	
+	uint8_t DirectAccessToMag = 1;
 	if(!DirectAccessToMag){
 
 		int8_t Num;
@@ -1202,8 +1203,10 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 
 		//	mpu_set_bypass(1);
 		//	AKM_CNTL_WRITE_CONT_MEAS_MODE2(akm_addr,HIGH_SENS);
+		
 	}
 	delay(10);
+
 	return *this;
 }
 
@@ -1228,52 +1231,53 @@ Simple_MPU6050 & Simple_MPU6050::mpu_set_bypass(unsigned char bypass_on){
 	return *this;
 }
 
-Simple_MPU6050 & Simple_MPU6050::readMagData(){
+
+bool Simple_MPU6050::readMagData(){
+	return readMagData(mag);
+}
+bool Simple_MPU6050::readMagData(float *magData){
 	//read mag
-	static unsigned long _ETimer;
-	if ( millis() - _ETimer >= (1000)) {
-		_ETimer += (1000);
-		AKM_CNTL_WRITE_SINGLE_MEAS_MODE(0x0C,1);
-		delay(10);
-		I2Cdev::readBytes(0x0C, 0x03, 6, buffer);
+	static unsigned long XTimer;
+	static uint8_t Skip;
+	if(!Skip){
+		AKM_CNTL_WRITE_SINGLE_MEAS_MODE(0x0C,1);// Single Measurement mode with High res 16Bit output
+		Skip = 1;
+		XTimer= millis();
 	}
-	AKM_CNTL_WRITE_SINGLE_MEAS_MODE(0x0C,1);
-	delay(100);
+	if ( millis() - XTimer < (10)) return 0; // after triggering the Single Measurement mode it takes 10ms max to gather new data
+	Skip = 0;// we will need to reset the delay timer before gathering new data
 	int16_t RawCompass[3];
+
 	AKM_DATA_READ_RAW_COMPASS_SWAP(akm_addr,RawCompass);
-	mag[0] = (float)RawCompass[0];
-	mag[1] = (float)RawCompass[1];
-	mag[2] = (float)RawCompass[2];
+	magData[0] = (float)RawCompass[0];
+	magData[1] = (float)RawCompass[1];
+	magData[2] = (float)RawCompass[2];
 	AKM_CNTL_WRITE_SINGLE_MEAS_MODE(0x0C,1);
-//	MPU9250.readMagData(magCount);  // Read the x/y/z adc values
-	      
+   
 	// Calculate the magnetometer values in milliGauss
 	// Include factory calibration per data sheet and user environmental corrections
 	mRes = (mRes!=0)?mRes:1;
-	mag[0] = (float)mag[0]*mRes*mag_sens_adj_F[0] - mag_bias[0];  // get actual magnetometer value, this depends on scale being set
-	mag[1] = (float)mag[1]*mRes*mag_sens_adj_F[1] - mag_bias[1];
-	mag[2] = (float)mag[2]*mRes*mag_sens_adj_F[2] - mag_bias[2];
+	magData[0] = (float)magData[0]*mRes*mag_sens_adj_F[0] - mag_bias[0];  // get actual magnetometer value, this depends on scale being set
+	magData[1] = (float)magData[1]*mRes*mag_sens_adj_F[1] - mag_bias[1];
+	magData[2] = (float)magData[2]*mRes*mag_sens_adj_F[2] - mag_bias[2];
 
-	if(mag_scale[0]!=0) mag[0] *= mag_scale[0];
-	if(mag_scale[1]!=0) mag[1] *= mag_scale[1];
-	if(mag_scale[2]!=0) mag[2] *= mag_scale[2];
+	if(mag_scale[0]!=0) magData[0] *= mag_scale[0];
+	if(mag_scale[1]!=0) magData[1] *= mag_scale[1];
+	if(mag_scale[2]!=0) magData[2] *= mag_scale[2];
 
 
 	// Normalise magnetometer measurement
-	float nmag = sqrt(mag[0] * mag[0] + mag[1] * mag[1] + mag[2] * mag[2]);
-	if (nmag == 0.0f) return *this; // handle NaN
+	float nmag = sqrt(magData[0] * magData[0] + magData[1] * magData[1] + magData[2] * magData[2]);
+	if (nmag == 0.0f) return 0; // handle NaN
 	nmag = 1.0f / nmag;        // use reciprocal for division
-	mag[0] *= nmag;
-	mag[1] *= nmag;
-	mag[2] *= nmag;
-
-
-
-
-
-	return *this;
+	magData[0] *= nmag;
+	magData[1] *= nmag;
+	magData[2] *= nmag;
+	
+	return true;
 }
 
+/*
 // Work in Progress:
 Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
 	delay(2);
@@ -1289,12 +1293,14 @@ Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
 	//I2Cdev::writeByte(0x0C, 0x0A, 0x01); //enable the magnetometer
 	return *this;
 }
+*/
 
 
 
 
+#define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // A Way to do a Blink without Delay timer
 
-#define spamtimer(t)										for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis())
+// I have not proven this to be correct.
 Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
 //https://github.com/kriswiner/MPU6050/wiki/Simple-and-Effective-Magnetometer-Calibration
 //https://appelsiini.net/2018/calibrate-magnetometer/
@@ -1396,6 +1402,8 @@ Simple_MPU6050 & Simple_MPU6050::PrintMagOffsets(){
 	return *this;
 }
 
+
+//Print the Mag Configuration registers
 Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 	uint8_t D;
 	MPUi2cReadByte(akm_addr,0,&D);

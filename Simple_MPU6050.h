@@ -231,7 +231,8 @@ class Simple_MPU6050 : public I2Cdev {
 	Simple_MPU6050 & mpu_get_compass_reg_bypass(short *Data);
 	Simple_MPU6050 & mpu_get_compass_reg_External(int16_t *Data);
 
-	Simple_MPU6050 & readMagData();
+	bool readMagData();
+    bool readMagData(float *magData);
 	Simple_MPU6050 & readMagDataThroughMPU();
 
 	Simple_MPU6050 & magcalMPU();
