@@ -200,12 +200,12 @@ uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *qu
                  fifoC = 0;
                  while (!(fifoC = getFIFOCount()) && ((micros() - BreakTimer) <= (11000))); // Get Next New Packet
              } else { //We have more than 1 packet but less than 200 bytes of data in the FIFO Buffer
-                 uint8_t Trash[BUFFER_LENGTH];
+                 uint8_t Trash[I2CDEVLIB_WIRE_BUFFER_LENGTH];
                  while ((fifoC = getFIFOCount()) > length) {  // Test each time just in case the MPU is writing to the FIFO Buffer
                      fifoC = fifoC - length; // Save the last packet
                      uint16_t  RemoveBytes;
                      while (fifoC) { // fifo count will reach zero so this is safe
-                         RemoveBytes = min((int)fifoC, BUFFER_LENGTH); // Buffer Length is different than the packet length this will efficiently clear the buffer
+                         RemoveBytes = min((int)fifoC, I2CDEVLIB_WIRE_BUFFER_LENGTH); // Buffer Length is different than the packet length this will efficiently clear the buffer
 //                        getFIFOBytes(Trash, (uint8_t)RemoveBytes);
 						 FIFO_READ((uint8_t)RemoveBytes, Trash);
                          fifoC -= RemoveBytes;
