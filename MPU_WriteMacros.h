@@ -88,7 +88,7 @@
 #define ACCEL_CONFIG_WRITE_ax_st_en(Data)               MPUi2cWrite(0x1C, 1, 7, (uint8_t)Data)		//   X Accel self-test
 #define ACCEL_CONFIG_WRITE_ay_st_en(Data)               MPUi2cWrite(0x1C, 1, 6, (uint8_t)Data)		//   Y Accel self-test
 #define ACCEL_CONFIG_WRITE_az_st_en(Data)               MPUi2cWrite(0x1C, 1, 5, (uint8_t)Data)		//   Z Accel self-test
-#define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL(Data)           MPUi2cWrite(0x1C, 2, 3, (uint8_t)Data)		//   Accel Full Scale Select: 2g (00), 4g (01), 8g (10), 16g (11)
+#define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL(Data)           MPUi2cWrite(0x1C, 2, 3, (uint8_t)Data)		//   Accel Full Scale Select: 2g (00B), 4g (01B), 8g (10B), 16g (11B)
 
 #define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL_2g(...)         MPUi2cWrite(0x1C, 2, 3, (uint8_t)0)			//   Accel Full Scale Select: 2g
 #define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL_4g(...)         MPUi2cWrite(0x1C, 2, 3, (uint8_t)1)			//   Accel Full Scale Select: 4g
