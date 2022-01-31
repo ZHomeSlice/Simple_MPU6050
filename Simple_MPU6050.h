@@ -56,6 +56,9 @@
 #define ShowByte(Addr) {uint8_t val; I2Cdev::readBytes(0x68, Addr, 1, &val);  Serial.print("0x"); DPRINTHEX(Addr); Serial.print(" = 0x"); DPRINTHEX(val); Serial.print(" = 0B"); DPRINTBIN(val); Serial.println();}
 #define ShowValue(Name, FunctionD) FunctionD; Serial.print(Name); Serial.print(" = 0x"); DPRINTHEX(D); Serial.print(" = 0B"); DPRINTBIN(D); Serial.println();
 
+#define DMPGyroOnly {unsigned char regs[4];regs = {0xA3,0xA3,0xA3,0xA3};write_mem(CFG_8, 4, regs);regs = {0xC0,0xC2,0xC4,0xC6};write_mem(CFG_LP_QUAT, 4, regs);}
+
+
 class Simple_MPU6050 : public I2Cdev {
     static void nothing(void) {};
     static void nothing(int16_t *, int16_t *, int32_t *, uint32_t *) {};
@@ -79,7 +82,7 @@ class Simple_MPU6050 : public I2Cdev {
       SensorList_s V;
       int16_t intData[sizeof(SensorList_s) / 2];
     };
-
+    uint8_t _DMPMode;
 	const float radians_to_degrees = 180.0 / M_PI;
 	uint8_t HIGH_SENS  = 1; // 0 = 14-BIT, 1 = 16-BIT 
     AccelGyro_u S;
@@ -117,7 +120,7 @@ class Simple_MPU6050 : public I2Cdev {
 
 
     //Startup Functins MPU
-    Simple_MPU6050(); // Constructor
+    Simple_MPU6050(uint8_t DMPMode = 0); // Constructor
     Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);

@@ -43,8 +43,11 @@ volatile uint8_t _maxPackets;
 /**
 @brief      Initialization functions
 */
-Simple_MPU6050::Simple_MPU6050() {
+#define Three_Axis_Low_Power_Quaternions 3
+#define Six_Axis_Low_Power_Quaternions 6  // Default
 
+Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
+    _DMPMode = DMPMode;
 	SetAddress(MPU6050_DEFAULT_ADDRESS);
 	packet_length = 28;
 	/*
@@ -430,6 +433,17 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	MPUi2cWriteByte(0x19, 0x04);
 	if(!CalibrateMode){
 		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
+		if (_DMPMode == 3){ // Change eDMP to 3 Axis Low Power Quaternions it was defaulted to 6 Axis Low Power Quaternions
+			uint8_t regs1[4] = {0xA3,0xA3,0xA3,0xA3};
+			write_mem(CFG_8, 4, regs1);
+			uint8_t regs2[4] = {0xC0,0xC2,0xC4,0xC6};
+			write_mem(CFG_LP_QUAT, 4, regs2);
+			Serial.println(F("3 Axis Low Power Quaternions"));
+		
+		} else{
+			Serial.println(F("6 Axis Low Power Quaternions"));
+		
+		}
 		write_mem(D_0_22, 2, DMP_Output_Rate);      // Modify the Firmware Chunk for DMP output Rate  
 		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
@@ -468,6 +482,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
 	load_DMP_Image(true);
 	CalibrateAccel(Loops);
 	CalibrateGyro(Loops);
+	/*
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
 	if(WhoAmI < 0x38){
 		Serial.println(F("Found MPU6050 or MPU9150"));
@@ -483,6 +498,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
 	XG_OFFSET_H_READ_X_OFFS_USR(&sgx_);
 	YG_OFFSET_H_READ_Y_OFFS_USR(&sgy_);
 	ZG_OFFSET_H_READ_Z_OFFS_USR(&sgz_);
+	*/
 	return *this;
 }
 
@@ -707,6 +723,7 @@ bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
 @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
+	Serial.print("Calibrate Gyro");
 	double kP = 0.3;
 	double kI = 90;
 	float x;
@@ -714,7 +731,10 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 	kP *= x;
 	kI *= x;
 	PID( 0x43,  kP, kI,  Loops);
-	//Serial.println();
+	XG_OFFSET_H_READ_X_OFFS_USR(&sgx_);
+	YG_OFFSET_H_READ_Y_OFFS_USR(&sgy_);
+	ZG_OFFSET_H_READ_Z_OFFS_USR(&sgz_);
+	Serial.println();
 	return *this;
 }
 
@@ -723,6 +743,7 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 */
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
+	Serial.print("Calibrate Accel");
 	float kP = 0.3;
 	float kI = 90;
 	float x;
@@ -730,7 +751,19 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	kP *= x;
 	kI *= x;
 	PID( 0x3B, kP, kI,  Loops);
-	//Serial.println();
+	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	if(WhoAmI < 0x38){
+		Serial.println(F("Found MPU6050 or MPU9150"));
+		XA_OFFSET_H_READ_XA_OFFS(&sax_);
+		YA_OFFSET_H_READ_YA_OFFS(&say_);
+		ZA_OFFSET_H_READ_ZA_OFFS(&saz_);
+		}else {
+		Serial.println(F("Found MPU6500 or MPU9250"));
+		XA_OFFSET_H_READ_0x77_XA_OFFS(&sax_);
+		YA_OFFSET_H_READ_0x77_YA_OFFS(&say_);
+		ZA_OFFSET_H_READ_0x77_ZA_OFFS(&saz_);
+	}
+	Serial.println();
 	return *this;
 }
 
