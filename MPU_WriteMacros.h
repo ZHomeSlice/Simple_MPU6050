@@ -79,16 +79,16 @@
 #define GYRO_CONFIG_WRITE_ZGYRO_Ct_en(Data)             MPUi2cWrite(0x1B, 1, 5, (uint8_t)Data)		//   Z Gyro self-test
 #define GYRO_CONFIG_WRITE_GYRO_FS_SEL(Data)             MPUi2cWrite(0x1B, 2, 4, (uint8_t)Data)		//   Gyro Full Scale Select: 00B = +250 01B = +500 10B = +1000 11B = 2000
 
-#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_250(...)          MPUi2cWrite(0x1B, 3, 4, (uint8_t)0)			//   Gyro Full Scale Select: +250 Deg/sec
-#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_500(...)          MPUi2cWrite(0x1B, 3, 4, (uint8_t)1)			//   Gyro Full Scale Select: +500 Deg/sec
-#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_1000(...)         MPUi2cWrite(0x1B, 3, 4, (uint8_t)2)			//   Gyro Full Scale Select: +1000 Deg/sec
-#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_2000(...)         MPUi2cWrite(0x1B, 3, 4, (uint8_t)3)			//   Gyro Full Scale Select: +2000 Deg/sec
+#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_250(...)          MPUi2cWrite(0x1B, 2, 4, (uint8_t)0)			//   Gyro Full Scale Select: +250 Deg/sec
+#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_500(...)          MPUi2cWrite(0x1B, 2, 4, (uint8_t)1)			//   Gyro Full Scale Select: +500 Deg/sec
+#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_1000(...)         MPUi2cWrite(0x1B, 2, 4, (uint8_t)2)			//   Gyro Full Scale Select: +1000 Deg/sec
+#define GYRO_CONFIG_WRITE_GYRO_FS_SEL_2000(...)         MPUi2cWrite(0x1B, 2, 4, (uint8_t)3)			//   Gyro Full Scale Select: +2000 Deg/sec
 #define GYRO_CONFIG_WRITE_FCHOICE_B(Data)               MPUi2cWrite(0x1B, 2, 2, (uint8_t)Data)		//   Used to bypass DLPF
 
 #define ACCEL_CONFIG_WRITE_ax_st_en(Data)               MPUi2cWrite(0x1C, 1, 7, (uint8_t)Data)		//   X Accel self-test
 #define ACCEL_CONFIG_WRITE_ay_st_en(Data)               MPUi2cWrite(0x1C, 1, 6, (uint8_t)Data)		//   Y Accel self-test
 #define ACCEL_CONFIG_WRITE_az_st_en(Data)               MPUi2cWrite(0x1C, 1, 5, (uint8_t)Data)		//   Z Accel self-test
-#define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL(Data)           MPUi2cWrite(0x1C, 2, 3, (uint8_t)Data)		//   Accel Full Scale Select: 2g (00), 4g (01), 8g (10), 16g (11)
+#define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL(Data)           MPUi2cWrite(0x1C, 2, 3, (uint8_t)Data)		//   Accel Full Scale Select: 2g (00B), 4g (01B), 8g (10B), 16g (11B)
 
 #define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL_2g(...)         MPUi2cWrite(0x1C, 2, 3, (uint8_t)0)			//   Accel Full Scale Select: 2g
 #define ACCEL_CONFIG_WRITE_ACCEL_FS_SEL_4g(...)         MPUi2cWrite(0x1C, 2, 3, (uint8_t)1)			//   Accel Full Scale Select: 4g
