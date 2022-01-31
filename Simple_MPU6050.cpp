@@ -526,8 +526,8 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 		}
 		for (uint16_t c = 0; c < this_write; c++) {
 			Serial.print(F(" 0x"));
-			Serial.print(Num >> 4, HEX); //Prints 0 insted of nothing when byte is less than 8
-			Serial.print(Num & 0X0F, HEX); // Prints the remainder of the hex number
+			Serial.print(cur[c] >> 4, HEX); //Prints 0 insted of nothing when byte is less than 8
+			Serial.print(cur[c] & 0X0F, HEX); // Prints the remainder of the hex number
 			Serial.print(F(","));
 		}
 		Serial.println();
