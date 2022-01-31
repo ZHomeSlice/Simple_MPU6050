@@ -41,8 +41,9 @@ int MPUNumber;  //
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
 #define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
-
-Simple_MPU6050 mpu;
+#define Three_Axis_Quaternions 3
+#define Six_Axis_Quaternions 6  // Default
+Simple_MPU6050 mpu(Six_Axis_Quaternions);
 /*             _________________________________________________________*/
 //               X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro
 //#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets.
@@ -133,7 +134,7 @@ void setup() {
     digitalWrite(7, !(i == 7)); // when i == 7 set pin LOW
     digitalWrite(8, !(i == 8)); // when i == 8 set pin LOW
     digitalWrite(9, !(i == 9)); // when i == 9 set pin LOW
-    mpu.CalibrateMPU().Enable_Reload_of_DMP().load_DMP_Image();// Does it all for you with Calibration
+    mpu.CalibrateMPU().Enable_Reload_of_DMP(Six_Axis_Quaternions).load_DMP_Image();// Does it all for you with Calibration
   }
   mpu.on_FIFO(print_Values);
 }

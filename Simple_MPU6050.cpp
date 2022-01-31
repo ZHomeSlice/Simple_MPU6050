@@ -505,7 +505,8 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
 /**
 @brief      Resets the DMP firmware lockdown to allow firmware to be loaded again.
 */
-Simple_MPU6050 &  Simple_MPU6050::Enable_Reload_of_DMP(){
+Simple_MPU6050 &  Simple_MPU6050::Enable_Reload_of_DMP(uint8_t DMPMode) {
+    _DMPMode = DMPMode;
 	DMP_Loaded = false;
 	return *this;	
 }

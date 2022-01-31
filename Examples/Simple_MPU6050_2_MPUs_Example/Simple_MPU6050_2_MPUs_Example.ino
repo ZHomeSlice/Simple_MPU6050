@@ -39,8 +39,9 @@
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
 #define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
-
-Simple_MPU6050 mpu;
+#define Three_Axis_Quaternions 3
+#define Six_Axis_Quaternions 6  // Default
+Simple_MPU6050 mpu(Six_Axis_Quaternions);
 /*             _________________________________________________________*/
 //               X Accel  Y Accel  Z Accel   X Gyro   Y Gyro   Z Gyro
 //#define OFFSETS  -5260,    6596,    7866,     -45,       5,      -9  // My Last offsets.
@@ -236,6 +237,7 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
    #define DMP_10sec  0x07, 0xCF
    #define DMP_60sec  0x2E, 0xDF
 */
+
 void setup() {
 
   uint8_t val;
@@ -253,7 +255,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS)
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS);
     mpu.Set_DMP_Output_Rate_Hz(10);           // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
   //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute
@@ -264,7 +266,7 @@ void setup() {
   mpu.CalibrateMPU().load_DMP_Image();// Does it all for you with Calibration
   digitalWrite(8, LOW);
   digitalWrite(9, HIGH);
-  mpu.CalibrateMPU().Enable_Reload_of_DMP().load_DMP_Image();// Does it all for you with Calibration
+  mpu.CalibrateMPU().Enable_Reload_of_DMP(Three_Axis_Quaternions).load_DMP_Image();// Does it all for you with Calibration
   mpu.on_FIFO(print_Values);
 }
 
