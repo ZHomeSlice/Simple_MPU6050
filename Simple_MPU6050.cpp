@@ -55,7 +55,9 @@ Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
 	packet_length += 6;//DMP_FEATURE_SEND_RAW_ACCEL
 	packet_length += 6;//DMP_FEATURE_SEND_RAW_GYRO
 	packet_length += 16;//DMP_FEATURE_6X_LP_QUAT
-	*/
+    */
+    packet_length += 4; //DMP_FEATURE_TAP | DMP_FEATURE_ANDROID_ORIENT
+	
 	_maxPackets = floor(512 / packet_length); // MPU 9250 can only handle 512 bytes of data in the FIFO
 }
 
