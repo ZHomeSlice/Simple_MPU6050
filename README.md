@@ -1,5 +1,13 @@
 # Simple_MPU6050
-Using the Latest  InvenSense release DMP Firmware: Embedded MotionDriver 6.12 Preconfigured to do DMP Quaternion, Accel and Gyro using the FIFO buffer
+
+Features:
+  <br>--Works with <b>MPU6050, MPU6500, MPU9050, MPU9250</b> (Multiple MPU's on the same i2c buss can be mixed or matched. Auto detects)
+  <br>--The MPU9050, MPU9250 gives access to the Magnetometer values.
+  <br>--Allows for easy access to multiple MPU's on the same i2c buss using the ado pin to isolate the desired MPU for reading.
+  <br>--Allows for eDMP firmware to be set to 3 Axis  gyro only or 6 Axis Gyro with Accellerometer Quaternions (Multiple MPU's can be uniqually set).
+  <br>--Interrupts are now optional to trigger i2c read of the FIFO Buffer.
+  <br>--Overflow of the FIFO buffer has been resolved.
+  <br>--Uses the Latest InvenSense release DMP Firmware: Embedded MotionDriver 6.12 Preconfigured to do DMP Quaternion, Accel and Gyro using the FIFO buffer.
 
 The dmp Driver and manufacturer InvenSense provided sourch code can be found here:https://www.invensense.com/developers/software-downloads/
 
