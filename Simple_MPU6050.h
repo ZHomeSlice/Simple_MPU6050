@@ -24,6 +24,22 @@
 #ifndef Simple_MPU6050_h
 #define Simple_MPU6050_h
 
+#ifndef I2CDEVLIB_WIRE_BUFFER_LENGTH
+    #if defined(I2C_BUFFER_LENGTH)
+        // Arduino ESP32 core Wire uses this
+        #define I2CDEVLIB_WIRE_BUFFER_LENGTH I2C_BUFFER_LENGTH
+    #elif defined(BUFFER_LENGTH)
+        // Arduino AVR core Wire and many others use this
+        #define I2CDEVLIB_WIRE_BUFFER_LENGTH BUFFER_LENGTH
+    #elif defined(SERIAL_BUFFER_SIZE)
+        // Arduino SAMD core Wire uses this
+        #define I2CDEVLIB_WIRE_BUFFER_LENGTH SERIAL_BUFFER_SIZE
+    #else
+        // should be a safe fallback, though possibly inefficient
+        #define I2CDEVLIB_WIRE_BUFFER_LENGTH 32
+    #endif
+#endif
+
 #include <Wire.h>
 #include "I2Cdev.h"
 #include "DMP_Image.h"
@@ -132,7 +148,7 @@ class Simple_MPU6050 : public I2Cdev {
 	Simple_MPU6050 & CalibrateMPU(uint8_t Loops = 30);
     Simple_MPU6050 & Enable_Reload_of_DMP(uint8_t DMPMode = 6);
     Simple_MPU6050 & load_DMP_Image(uint8_t CalibrateMode = 0);
-	Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate = 1);
+	Simple_MPU6050 & load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
 	Simple_MPU6050 & resetOffset();
     Simple_MPU6050 & setOffset(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_);
     Simple_MPU6050 & on_FIFO(void (*CB)(int16_t *, int16_t *, int32_t *, uint32_t *));

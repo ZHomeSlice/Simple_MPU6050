@@ -408,7 +408,7 @@ Simple_MPU6050 & Simple_MPU6050::Set_DMP_Output_Rate_Minutes(float rate){  // 1 
 	return *this;
 }
 
-Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_,int8_t Calibrate) {
+Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
 	sax_ = ax_;
 	say_ = ay_;
 	saz_ = az_;
@@ -531,7 +531,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 
 	for (ii = 0; ii < length; ii += this_write) {
 		this_write = min(LOAD_CHUNK, length - ii);
-		int16_t x;
+		uint16_t x;
 		uint8_t *pFirmware = (uint8_t *)&firmware[ii];
 		for ( x = 0; x < this_write; x++ ) firmware_chunk[x] = pgm_read_byte_near(pFirmware + x);
 		write_mem(ii, this_write, firmware_chunk);
@@ -839,7 +839,7 @@ Simple_MPU6050 & Simple_MPU6050::resetOffset() {
 }
 
 Simple_MPU6050 & Simple_MPU6050::setOffset(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
-	Serial.println("set Offsets");
+	Serial.println("Set Offsets");
 	sax_ = ax_;
 	say_ = ay_;
 	saz_ = az_;
