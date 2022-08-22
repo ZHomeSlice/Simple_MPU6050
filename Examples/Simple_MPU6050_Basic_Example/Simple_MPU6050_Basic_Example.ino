@@ -35,10 +35,11 @@
 Simple_MPU6050 mpu;
 
 //***************************************************************************************
-//******************                Print Funcitons                **********************
+//******************              Callback Funciton                **********************
 //***************************************************************************************
-//Gyro, Accel and Quaternion
-int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+
+// See mpu.on_FIFO(print_Values); in the Setup Loop
+void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -57,16 +58,6 @@ int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDe
   Serial.print(F("gy "));    Serial.print(gyro[1]);  Serial.print(F(",   "));
   Serial.print(F("gz "));    Serial.print(gyro[2]);  Serial.print(F("\n"));
   Serial.println();
-}
-
-//***************************************************************************************
-//******************              Callback Funciton                **********************
-//***************************************************************************************
-
-// See mpu.on_FIFO(print_Values); in the Setup Loop
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-  uint8_t Spam_Delay = 100; // Built in Blink without delay timer preventing Serial.print SPAM
-  PrintAllValues(gyro, accel, quat, Spam_Delay);
 }
 
 //***************************************************************************************
