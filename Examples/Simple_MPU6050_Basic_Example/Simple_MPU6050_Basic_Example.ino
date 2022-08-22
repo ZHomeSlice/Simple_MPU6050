@@ -14,9 +14,9 @@
 
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
@@ -24,8 +24,8 @@
 
 /*
  *  Use with any MPU: MPU6050, MPU6500, MPU9150, MPU9155, MPU9250 
- *  Attach the MPU to the I2C buss
- *  Power MPU According to specs of the breakout board. Generic Breakout Version Powers with 5V and has a onboard Voltage regulator.
+ *  Attach the MPU to the I2C bus
+ *  Power MPU According to specs of the breakout board. Generic Breakout Version Powers with 5V and has an onboard Voltage regulator.
  *  run the Sketch
  */
 
@@ -48,6 +48,7 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
   mpu.GetGravity(&gravity, &q);
   mpu.GetYawPitchRoll(ypr, &q, &gravity);
   mpu.ConvertToDegrees(ypr, xyz);
+  
   Serial.print(F("Yaw "));   Serial.print(xyz[0]);   Serial.print(F(",   "));
   Serial.print(F("Pitch ")); Serial.print(xyz[1]);   Serial.print(F(",   "));
   Serial.print(F("Roll "));  Serial.print(xyz[2]);   Serial.print(F(",   "));
@@ -65,7 +66,7 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //***************************************************************************************
 
 void setup() {
-  uint8_t val;
+  
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
@@ -95,14 +96,14 @@ void setup() {
 
 void loop() {
   static unsigned long FIFO_DelayTimer;
-  if ((millis() - FIFO_DelayTimer) >= (99)) { // 99ms insted of 100ms to start polling the MPU 1ms prior to data arriving.
+  if ((millis() - FIFO_DelayTimer) >= (99)) { // 99ms instead of 100ms to start polling the MPU 1ms prior to data arriving.
     if( mpu.dmp_read_fifo(false)) FIFO_DelayTimer= millis() ; // false = no interrupt pin attachment required and When data arrives in the FIFO Buffer reset the timer
   }
   // dmp_read_fifo(false) does the following
   // Tests for Data in the FIFO Buffer
   // when it finds data it runs the mpu.on_FIFO(print_Values)
-  // the print_Values functin which we set run the PrintAllValues Function
-  // When data is caputred dmp_read_fifo will return true.
+  // the print_Values function which we set run the PrintAllValues Function
+  // When data is captured dmp_read_fifo will return true.
   // The print_Values function MUST have the following variables available to attach data
   // void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp)
   // Variables:
