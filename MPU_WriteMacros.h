@@ -269,7 +269,7 @@
 #define USER_CTRL_WRITE_RESET(...)                      WriteBit(0x6A, 4, 3, (uint8_t)0b1111)		//   1  Reset DMP,  gyro digital signal path, accel digital signal path, and temp digital signal path. This bit also clears all the sensor registers. SIG_COND_RST is a pulse of one clk8M wide.
 
 																							// per MPU-6000/MPU-6050 Register Map and Descriptions page 41 The proper reset sequence is Reset Device wait 100ms Reset gyro,accel, temp signal paths wait 100ms
-#define PWR_MGMT_1_WRITE_DEVICE_RESET(...)              WriteBit(0x6B, 1, 7, (uint8_t)1);delay(100);WriteBit(0x6A, 3, 2, (uint8_t)0b111);delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
+#define PWR_MGMT_1_WRITE_DEVICE_RESET(...)              WriteBit(0x6B, 1, 7, (uint8_t)1).Delay(100).WriteBit(0x6A, 3, 2, (uint8_t)0b111).Delay(100);  //   1  Reset the internal registers and restores the default settings. Write a 1 to set the reset, the bit will auto clear.
 #define PWR_MGMT_1_WRITE_SLEEP(Data)                    WriteBit(0x6B, 1, 6, (uint8_t)Data)		//   When set, the chip is set to sleep mode (After OTP loads, the PU_SLEEP_MODE bit will be written here)
 #define PWR_MGMT_1_WRITE_CYCLE(Data)                    WriteBit(0x6B, 1, 5, (uint8_t)Data)		//   When set, and SLEEP and STANDBY are not set, the chip will cycle between sleep and taking a single sample at a rate determined by LP_ACCEL_ODR register
 #define PWR_MGMT_1_WRITE_GYRO_STANDBY(Data)             WriteBit(0x6B, 1, 4, (uint8_t)Data)		//   When set, the gyro drive and pll circuitry are enabled, but the sense paths are disabled. This is a low power mode that allows quick enabling of the gyros.

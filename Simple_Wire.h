@@ -79,7 +79,8 @@ class Simple_Wire : public TwoWire{
         uint8_t  WriteCount() {return(I2CWriteCount);};
         bool  ReadSuccess() {return(I2CReadCount>0);};
         bool  WriteSucess() {return(I2CWriteCount>0);};
-        
+        // Helper functions
+        Simple_Wire & Delay( uint32_t ms ){delay(ms); return *this;};
     private:
     
         uint8_t I2CReadCount;
