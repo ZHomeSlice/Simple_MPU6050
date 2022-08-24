@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -14,7 +14,7 @@
 
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
@@ -39,7 +39,7 @@ Simple_MPU6050 mpu;
 //***************************************************************************************
 
 // See mpu.on_FIFO(print_Values); in the Setup Loop
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
+void Print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -66,30 +66,18 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 //***************************************************************************************
 
 void setup() {
-  
-  // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#ifdef __AVR__  
-  Wire.setWireTimeout(3000, true); //timeout value in uSec
-#endif
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
   // initialize serial communication
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
 
-  // Setup the MPU
-    mpu.Set_DMP_Output_Rate_Hz(10);           // Set the DMP output rate from 200Hz to 5 Minutes.
+  // Setup the MPU and TwoWire aka Wire library all at once
+  mpu.Set_DMP_Output_Rate_Hz(10);          // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
   //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS); //Sets the address of the MPU.
   mpu.CalibrateMPU();                      // Calibrates the MPU.
   mpu.load_DMP_Image();                    // Loads the DMP image into the MPU and finish configuration.
-  mpu.on_FIFO(print_Values);               // Set callback function that is triggered when FIFO Data is retrieved
+  mpu.on_FIFO(Print_Values);               // Set callback function that is triggered when FIFO Data is retrieved
   // Setup is complete!
   
 }

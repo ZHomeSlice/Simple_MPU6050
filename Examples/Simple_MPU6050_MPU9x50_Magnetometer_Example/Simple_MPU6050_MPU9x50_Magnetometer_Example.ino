@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,14 +15,12 @@
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
-*/
 
-/*
     Use with any MPU: MPU6050, MPU6500, MPU9150, MPU9155, MPU9250
     Attach the MPU to the I2C buss
     Power MPU According to specs of the breakout board. Generic Breakout Version Powers with 5V and has a onboard Voltage regulator.
@@ -37,10 +35,11 @@ Simple_MPU6050 mpu;
 float mag[3]; // Stroage location for magnetometer readings
 byte MagDataReady  = 0;
 //***************************************************************************************
-//******************                Print Funcitons                **********************
+//******************              Callback Function                **********************
 //***************************************************************************************
-//Gyro, Accel and Quaternion
-int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+
+// See mpu.on_FIFO(print_Values); in the Setup Loop
+void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -68,38 +67,16 @@ int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDe
     Serial.print(mag[1]);  Serial.print(F(",    "));
     Serial.print(mag[2]);
   }
-
   Serial.println();
-
-
 }
 
-//***************************************************************************************
-//******************              Callback Funciton                **********************
-//***************************************************************************************
-
-// See mpu.on_FIFO(print_Values); in the Setup Loop
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-  uint8_t Spam_Delay = 100; // Built in Blink without delay timer preventing Serial.print SPAM
-  PrintAllValues(gyro, accel, quat, Spam_Delay);
-}
 
 //***************************************************************************************
 //******************                Setup and Loop                 **********************
 //***************************************************************************************
 
 void setup() {
-  uint8_t val;
-  // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#ifdef __AVR__
-  Wire.setWireTimeout(3000, true); //timeout value in uSec
-#endif
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
+
   // initialize serial communication
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
@@ -119,7 +96,7 @@ void setup() {
 
 void loop() {
   static unsigned long FIFO_DelayTimer;
-  if ((millis() - FIFO_DelayTimer) >= (99)) { // 99ms insted of 100ms to start polling the MPU 1ms prior to data arriving.
+  if ((millis() - FIFO_DelayTimer) >= (99)) { // 99ms instead of 100ms to start polling the MPU 1ms prior to data arriving.
     if ( mpu.dmp_read_fifo(false)) FIFO_DelayTimer = millis() ; // false = no interrupt pin attachment required and When data arrives in the FIFO Buffer reset the timer
   }
   if (mpu.akm_addr > 0) {
@@ -128,8 +105,8 @@ void loop() {
   // dmp_read_fifo(false) does the following
   // Tests for Data in the FIFO Buffer
   // when it finds data it runs the mpu.on_FIFO(print_Values)
-  // the print_Values functin which we set run the PrintAllValues Function
-  // When data is caputred dmp_read_fifo will return true.
+  // the print_Values function which we set run the PrintAllValues Function
+  // When data is captured dmp_read_fifo will return true.
   // The print_Values function MUST have the following variables available to attach data
   // void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp)
   // Variables:

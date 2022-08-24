@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,24 +22,6 @@
   ===============================================
 */
 
-/* This driver reads quaternion data from the MPU6060 and sends
-   Open Sound Control messages.
-
-  GY-521  NodeMCU
-  MPU6050 devkit 1.0
-  board   Lolin         Description
-  ======= ==========    ====================================================
-  VCC     VU (5V USB)   Not available on all boards so use 3.3V if needed.
-  GND     G             Ground
-  SCL     D1 (GPIO05)   I2C clock
-  SDA     D2 (GPIO04)   I2C data
-  XDA     not connected
-  XCL     not connected
-  AD0     not connected
-  INT     D8 (GPIO15)   Interrupt pin
-
-*/
-
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #else
@@ -50,31 +32,19 @@
 #include <WiFiUdp.h>
 #include <OSCMessage.h>
 #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
-
-// I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
-// for both classes must be in the include path of your project
-#include "I2Cdev.h"
-
-#define MPU6050_DEFAULT_ADDRESS     0x68 // address pin low (GND), default for InvenSense evaluation board
 #include "Simple_MPU6050.h"
-
-// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
-// is used in I2Cdev.h
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-#include "Wire.h"
-#endif
 
 // class default I2C address is 0x68
 // specific I2C addresses may be passed as a parameter here
 // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
 // AD0 high = 0x69
 
-#define MPU6050_DEFAULT_ADDRESS     0x68 // address pin low (GND), default for InvenSense evaluation board
+#define MPU6050_DEFAULT_ADDRESS     0x68    // address pin low (GND), default for InvenSense evaluation board
 Simple_MPU6050 mpu;
 const char DEVICE_NAME[] = "mpu6050";
 
 WiFiUDP Udp;                                // A UDP instance to let us send and receive packets over UDP
-const IPAddress outIp(192, 168, 0, 242);     // remote IP to receive OSC
+const IPAddress outIp(192, 168, 0, 242);    // remote IP to receive OSC
 const unsigned int outPort = 9999;          // remote port to receive OSC
 
 
@@ -85,7 +55,7 @@ const unsigned int outPort = 9999;          // remote port to receive OSC
 //================================================================
 
 // See mpu.on_FIFO(print_Values); in the Setup Loop
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
+void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -103,8 +73,6 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
     Serial.printfloatx(F("gx")   , gyro[0],  5, 0, F(",   "));
     Serial.printfloatx(F("gy")   , gyro[1],  5, 0, F(",   "));
     Serial.printfloatx(F("gz")   , gyro[2],  5, 0, F("\n"));
-  
-
 }
 
 void WiFi_setup() {
@@ -128,16 +96,6 @@ void WiFi_setup() {
 //================================================================
 void mpu_setup()
 {
-  // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#ifdef __AVR__
-  Wire.setWireTimeout(3000, true); //timeout value in uSec
-#endif
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
   // Setup the MPU
   mpu.Set_DMP_Output_Rate_Hz(10);           // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
@@ -149,8 +107,6 @@ void mpu_setup()
   // Note that these funcitons return pointers to themselves so you can write them in one line
   // mpu.Set_DMP_Output_Rate_Hz(4).SetAddress(MPU6050_DEFAULT_ADDRESS).CalibrateMPU().load_DMP_Image().on_FIFO(print_Values);
   // Setup is complete!
-
-
 }
 //================================================================
 //===                          Setup                           ===

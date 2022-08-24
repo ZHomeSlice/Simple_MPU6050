@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,8 +15,8 @@
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
@@ -49,22 +49,22 @@ Simple_MPU6050 mpu(Six_Axis_Quaternions);
 /*             _________________________________________________________*/
 
 //***************************************************************************************
-//******************                Print Funcitons                **********************
+//******************                Print Functions                **********************
 //***************************************************************************************
 
 #define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // (BLACK BOX) Ya, don't complain that I used "for(;;){}" instead of "if(){}" for my Blink Without Delay Timer macro. It works nicely!!!
 
-/* printfloatx() is a helper Macro used with the Serial class to simplify my code and provide enhanced viewing of Float and interger values:
+/* printfloatx() is a helper Macro used with the Serial class to simplify my code and provide enhanced viewing of Float and intergers values:
    usage: printfloatx(Name,Variable,Spaces,Precision,EndTxt);
    Name and EndTxt are just char arrays
    Variable is any numerical value byte, int, long and float
    Spaces is the number of spaces the floating point number could possibly take up including +- and decimal point.
-   Percision is the number of digits after the decimal point set to zero for intergers
+   Precision is the number of digits after the decimal point set to zero for intergers
 */
 
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//printfloatx(Name,Variable,Spaces,Precision,EndTxt)
 
-int PrintValues(int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintValues(int32_t *quat, uint16_t SpamDelay = 100) {
   uint8_t WhoAmI;
   Quaternion q;
   VectorFloat gravity;
@@ -85,7 +85,7 @@ int PrintValues(int32_t *quat, uint16_t SpamDelay = 100) {
   }
 }
 
-int ChartValues(int32_t *quat, uint16_t SpamDelay = 100) {
+void ChartValues(int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -102,7 +102,7 @@ int ChartValues(int32_t *quat, uint16_t SpamDelay = 100) {
 }
 
 //Gyro, Accel and Quaternion
-int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -125,7 +125,7 @@ int PrintAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDe
   }
 }
 
-int ChartAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+void ChartAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
@@ -147,7 +147,7 @@ int ChartAllValues(int16_t *gyro, int16_t *accel, int32_t *quat, uint16_t SpamDe
   }
 }
 
-int PrintQuaternion(int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintQuaternion(int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   spamtimer(SpamDelay) {// non blocking delay before printing again. This skips the following code when delay time (ms) hasn't been met
     mpu.GetQuaternion(&q, quat);
@@ -158,7 +158,7 @@ int PrintQuaternion(int32_t *quat, uint16_t SpamDelay = 100) {
   }
 }
 
-int PrintEuler(int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintEuler(int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   float euler[3];         // [psi, theta, phi]    Euler angle container
   float eulerDEG[3];         // [psi, theta, phi]    Euler angle container
@@ -172,7 +172,7 @@ int PrintEuler(int32_t *quat, uint16_t SpamDelay = 100) {
   }
 }
 
-int PrintRealAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintRealAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
   VectorInt16 aa, aaReal;
@@ -188,7 +188,7 @@ int PrintRealAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
 }
 
 
-int PrintWorldAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
+void PrintWorldAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   Quaternion q;
   VectorFloat gravity;
   VectorInt16 aa, aaReal, aaWorld;
@@ -204,11 +204,11 @@ int PrintWorldAccel(int16_t *accel, int32_t *quat, uint16_t SpamDelay = 100) {
   }
 }
 //***************************************************************************************
-//******************              Callback Funciton                **********************
+//******************              Callback Function                **********************
 //***************************************************************************************
 
 
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
+void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
   uint8_t Spam_Delay = 10; // Built in Blink without delay timer preventing Serial.print SPAM
   PrintValues(quat, Spam_Delay);
   // ChartValues(quat, Spam_Delay);
@@ -239,18 +239,6 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *times
 */
 
 void setup() {
-
-  uint8_t val;
-  // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#ifdef __AVR__  
-  Wire.setWireTimeout(3000, true); //timeout value in uSec
-#endif
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
   // initialize serial communication
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately

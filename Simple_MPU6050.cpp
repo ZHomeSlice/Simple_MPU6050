@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,19 +15,22 @@
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
 */
-
+#include "Arduino.h"
 #include <Wire.h>
-#include <I2Cdev.h>
 #include "DMP_Image.h"
+#include "Simple_Wire.h"
 #include "Simple_MPU6050.h"
 #include "MPU_ReadMacros.h"
 #include "MPU_WriteMacros.h"
+
+// Blink Without Delay Serial Port Spam Timer Macro
+#define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // A Way to do a Blink without Delay timer
 
 //#define USE_OLD_GETYAWPITCHROLL // Calculation returns different values but possibly relevant for your project Try both out
 // OLD Yaw +- 180, Pitch and Roll +- 90 (Peaks at 90 deg then fall back to zero, shows Negative when pointing down pitch and left roll)
@@ -47,6 +50,9 @@ volatile uint8_t _maxPackets;
 #define Six_Axis_Low_Power_Quaternions 6  // Default
 
 Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
+    begin();
+    setClock(400000); // 400kHz I2C clock. 
+    setWireTimeout(3000, true); //timeout value in uSec
     _DMPMode = DMPMode;
 	SetAddress(MPU6050_DEFAULT_ADDRESS);
 	packet_length = 28;
@@ -64,10 +70,12 @@ Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
 /**
 @brief      Set Device Address
 */
+/*
 Simple_MPU6050 &  Simple_MPU6050::SetAddress(uint8_t address) {
 	devAddr = address;
 	return *this;
 }
+*/
 
 /**
 @brief      Returns Device Address
@@ -79,7 +87,7 @@ uint8_t  Simple_MPU6050::CheckAddress() {
 /**
 @brief      Set FIFO Callback
 */
-Simple_MPU6050 & Simple_MPU6050::on_FIFO(void (*CB)(int16_t *, int16_t *, int32_t *, uint32_t *)) {
+Simple_MPU6050 & Simple_MPU6050::on_FIFO(void (*CB)(int16_t *, int16_t *, int32_t *)) {
 	on_FIFO_cb = CB;
 	return *this; // return Pointer to this class
 }
@@ -106,18 +114,18 @@ Simple_MPU6050 & Simple_MPU6050::DMP_InterruptEnable(uint8_t Data) {
 };
 
 //***************************************************************************************
-//**********************      Overflow Protection functions        **********************
+//**********************      Interrupt Functions        **********************
 //***************************************************************************************
 /**
 @brief      manages properly testing interrupt trigger from interrupt pin
 */
 uint8_t Simple_MPU6050::CheckForInterrupt(void) {
-	uint8_t InteruptTriggered;
+	uint8_t InterruptTriggered;
 	noInterrupts ();
-	InteruptTriggered = mpuInterrupt;
+	InterruptTriggered = mpuInterrupt;
 	mpuInterrupt = false;
 	interrupts ();
-	return InteruptTriggered;
+	return InterruptTriggered;
 }
 
 //***************************************************************************************
@@ -132,12 +140,12 @@ uint8_t Simple_MPU6050::dmp_read_fifo(uint8_t CheckInterrupt) {
 	if (!dmp_read_fifo(gyro, accel, quat, &sensor_timestamp)) {
 		return 0;
 	}
-	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat, &sensor_timestamp);
+	if (on_FIFO_cb) on_FIFO_cb(gyro, accel, quat);
 	return 1;
 }
 
-/* Compare the above dmp_read_fifo function to the below dmp_read_fifo funciton.
- * The above funciton triggers a callback funciton only when the data is retrieved 
+/* Compare the above dmp_read_fifo function to the below dmp_read_fifo function.
+ * The above function triggers a callback function only when the data is retrieved 
  * This allows you to define a specific function at the time of setup to be used
  * The result code is a simpler setup
  * you could use the one below like
@@ -205,12 +213,12 @@ uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *qu
                  fifoC = 0;
                  while (!(fifoC = getFIFOCount()) && ((micros() - BreakTimer) <= (11000))); // Get Next New Packet
              } else { //We have more than 1 packet but less than 200 bytes of data in the FIFO Buffer
-                 uint8_t Trash[I2CDEVLIB_WIRE_BUFFER_LENGTH];
+                 uint8_t Trash[WIRE_BUFFER_LENGTH];
                  while ((fifoC = getFIFOCount()) > length) {  // Test each time just in case the MPU is writing to the FIFO Buffer
                      fifoC = fifoC - length; // Save the last packet
                      uint16_t  RemoveBytes;
                      while (fifoC) { // fifo count will reach zero so this is safe
-                         RemoveBytes = min((int)fifoC, I2CDEVLIB_WIRE_BUFFER_LENGTH); // Buffer Length is different than the packet length this will efficiently clear the buffer
+                         RemoveBytes = min((int)fifoC, WIRE_BUFFER_LENGTH); // Buffer Length is different than the packet length this will efficiently clear the buffer
 //                        getFIFOBytes(Trash, (uint8_t)RemoveBytes);
 						 FIFO_READ((uint8_t)RemoveBytes, Trash);
                          fifoC -= RemoveBytes;
@@ -227,127 +235,8 @@ uint8_t Simple_MPU6050::dmp_read_fifo(int16_t *gyro, int16_t *accel, int32_t *qu
      return 1;
 }
 
-
-
 //***************************************************************************************
-//**********************         i2cdev wrapper functions          **********************
-//***************************************************************************************
-
-// I did this to simplify managing all the macros found in MPU_ReadMacros.h and MPU_WriteMacros.h
-
-
-// Wrappered I2Cdev read functions
-Simple_MPU6050 & Simple_MPU6050::MPUi2cRead(uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t *Data) {
-	return MPUi2cRead( devAddr,  regAddr,  length,  bitNum,  Data);
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cRead(uint8_t AltAddress, uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t *Data) {
-	if(length == 1) I2CReadCount = readBit(AltAddress,  regAddr, bitNum, Data);
-	else I2CReadCount = readBits(AltAddress,  regAddr, bitNum, length,  Data);
-	return *this;
-}
-// MPUi2cReadBytes
-
-
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadByte(uint8_t regAddr,  uint8_t *Data) {
-	I2CReadCount = readBytes(devAddr, regAddr,  1, Data);
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadByte(uint8_t AltAddress,uint8_t regAddr,  uint8_t *Data) {
-	I2CReadCount = readBytes(AltAddress, regAddr,  1, Data);
-	return *this;
-}
-
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadBytes(uint8_t regAddr, uint8_t length, uint8_t *Data) {
-	I2CReadCount = readBytes(devAddr, regAddr,  length, Data);
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadBytes(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t *Data) {
-	I2CReadCount = readBytes(AltAddress, regAddr,  length, Data);
-	return *this;
-}
-
-// MPUi2cReadInt or Word
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadInt(uint8_t regAddr, uint16_t *Data) {
-	I2CReadCount = readWords(devAddr, regAddr, 1, Data); // reads 1 or more 16 bit integers (Word)
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadInt(uint8_t AltAddress,uint8_t regAddr, uint16_t *Data) {
-	I2CReadCount = readWords(AltAddress, regAddr, 1, Data); // reads 1 or more 16 bit integers (Word)
-	return *this;
-}
-
-// MPUi2cReadInts or Words
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadInts(uint8_t regAddr, uint16_t size, uint16_t *Data) {
-	I2CReadCount = readWords(devAddr, regAddr, size, Data); // reads 1 or more 16 bit integers (Word)
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cReadInts(uint8_t AltAddress,uint8_t regAddr, uint16_t size, uint16_t *Data) {
-	I2CReadCount = readWords(AltAddress, regAddr, size, Data); // reads 1 or more 16 bit integers (Word)
-	return *this;
-}
-
-
-
-// Wrappered I2Cdev write functions
-// MPUi2cWrite
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWrite(uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t Val) {
-	return MPUi2cWrite(devAddr, regAddr,  length,  bitNum,  Val);
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWrite(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t bitNum, uint8_t Val) {
-	if (length == 1) {
-		I2CWriteStatus = writeBit(AltAddress, regAddr, bitNum, Val); // Alters 1 bit by reading the byte making a change and storing the byte (faster than writeBits)
-	}
-	else if (bitNum != 255) {
-		I2CWriteStatus = writeBits(AltAddress, regAddr, bitNum, length, Val); // Alters several bits by reading the byte making a change and storing the byte
-	}
-	return *this;
-}
-
-// MPUi2cWriteByte
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteByte(uint8_t regAddr,  uint8_t Val) {
-	I2CWriteStatus = writeBytes(devAddr, regAddr,  1, &Val); //Writes 1 or more 8 bit Bytes
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteByte(uint8_t AltAddress,uint8_t regAddr,  uint8_t Val) {
-	I2CWriteStatus = writeBytes(AltAddress, regAddr,  1, &Val); //Writes 1 or more 8 bit Bytes
-	return *this;
-}
-
-// MPUi2cWriteBytes
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteBytes(uint8_t regAddr, uint8_t length, uint8_t *Data) {
-	I2CWriteStatus = writeBytes(devAddr, regAddr,  length, Data); //Writes 1 or more 8 bit Bytes
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteBytes(uint8_t AltAddress,uint8_t regAddr, uint8_t length, uint8_t *Data) {
-	I2CWriteStatus = writeBytes(AltAddress, regAddr,  length, Data); //Writes 1 or more 8 bit Bytes
-	return *this;
-}
-
-// MPUi2cWriteInt
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInt(uint8_t regAddr,  uint16_t Val) {
-	I2CWriteStatus = writeWords(devAddr, regAddr, 1,  &Val);// Writes 1 or more 16 bit integers (Word)
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInt(uint8_t AltAddress,uint8_t regAddr,  uint16_t Val) {
-	I2CWriteStatus = writeWords(AltAddress, regAddr, 1,  &Val);// Writes 1 or more 16 bit integers (Word)
-	return *this;
-}
-
-// MPUi2cWriteInts
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInts(uint8_t regAddr, uint16_t size, uint16_t *Data) {
-	I2CWriteStatus = writeWords(devAddr, regAddr, size / 2,  Data);
-	return *this;
-}
-Simple_MPU6050 & Simple_MPU6050::MPUi2cWriteInts(uint8_t AltAddress,uint8_t regAddr, uint16_t size, uint16_t *Data) {
-	I2CWriteStatus = writeWords(AltAddress, regAddr, size / 2,  Data);
-	return *this;
-}
-
-
-
-
-//***************************************************************************************
-//**********************      Firmwaer Read Write Functions        **********************
+//**********************      Firmware Read Write Functions        **********************
 //***************************************************************************************
 
 /**
@@ -424,15 +313,15 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 	TestConnection(1);
 	Serial.println();
 	PWR_MGMT_1_WRITE_DEVICE_RESET();				//PWR_MGMT_1:(0x6B Bit7 true) reset with 100ms delay and full SIGNAL_PATH_RESET:(0x6A Bits 3,2,1,0 True) with another 100ms delay
-	MPUi2cWriteByte(0x6B, 0x00);
-	MPUi2cWriteByte(0x6C, 0x00);
-	MPUi2cWriteByte(0x1A, 0x03);
-	MPUi2cWriteByte(0x1B, 0x18);
-	MPUi2cWriteByte(0x1C, 0x00);
-	MPUi2cWriteByte(0x23, 0x00);
-	MPUi2cWriteByte(0x38, 0x00);
-	MPUi2cWriteByte(0x6A, 0x04);
-	MPUi2cWriteByte(0x19, 0x04);
+	WriteByte(0x6B, 0x00);
+	WriteByte(0x6C, 0x00);
+	WriteByte(0x1A, 0x03);
+	WriteByte(0x1B, 0x18);
+	WriteByte(0x1C, 0x00);
+	WriteByte(0x23, 0x00);
+	WriteByte(0x38, 0x00);
+	WriteByte(0x6A, 0x04);
+	WriteByte(0x19, 0x04);
 	if(!CalibrateMode){
 		load_firmware(DMP_CODE_SIZE, dmp_memory);	// Loads the DMP image into the MPU6050 Memory
 		if (_DMPMode == 3){ // Change eDMP to 3 Axis Low Power Quaternions it was defaulted to 6 Axis Low Power Quaternions
@@ -447,14 +336,15 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 		
 		}
 		write_mem(D_0_22, 2, DMP_Output_Rate);      // Modify the Firmware Chunk for DMP output Rate  
-		MPUi2cWriteInt(0x70,  0x0400);				// DMP Program Start Address
+		WriteInt(0x70,  0x0400);				// DMP Program Start Address
 	}
-	resetOffset();									// Load Calibration offset values into MPU
+	resetOffset();	
+							// Load Calibration offset values into MPU
 	if(CalibrateMode)return *this;
 	PrintActiveOffsets();
 	AKM_Init();
-	MPUi2cWriteByte(0x6A, 0xC0);					// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
-	MPUi2cWriteByte(0x38, 0x02);					// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
+	WriteByte(0x6A, 0xC0);					// 1100 1100 USER_CTRL: Enable FIFO and Reset FIFO
+	WriteByte(0x38, 0x02);					// 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
 	dmp_on = 1;
 #ifdef interruptPin
     Interupt_Attach_Function
@@ -465,44 +355,7 @@ Simple_MPU6050 & Simple_MPU6050::load_DMP_Image(uint8_t CalibrateMode) {
 }
 
 
-/**
-@brief      ***EVERYTHING!*** needed to get DMP up and running! With Calibration!!!
-*/
 
-Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
-	sax_ = ax_;
-	say_ = ay_;
-	saz_ = az_;
-	sgx_ = gx_;
-	sgy_ = gy_;
-	sgz_ = gz_;
-	CalibrateMPU(10);
-	return *this;
-}
-
-Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
-	load_DMP_Image(true);
-	CalibrateAccel(Loops);
-	CalibrateGyro(Loops);
-	/*
-	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
-	if(WhoAmI < 0x38){
-		Serial.println(F("Found MPU6050 or MPU9150"));
-		XA_OFFSET_H_READ_XA_OFFS(&sax_);
-		YA_OFFSET_H_READ_YA_OFFS(&say_);
-		ZA_OFFSET_H_READ_ZA_OFFS(&saz_);
-		}else {
-		Serial.println(F("Found MPU6500 or MPU9250"));
-		XA_OFFSET_H_READ_0x77_XA_OFFS(&sax_);
-		YA_OFFSET_H_READ_0x77_YA_OFFS(&say_);
-		ZA_OFFSET_H_READ_0x77_ZA_OFFS(&saz_);
-	}
-	XG_OFFSET_H_READ_X_OFFS_USR(&sgx_);
-	YG_OFFSET_H_READ_Y_OFFS_USR(&sgy_);
-	ZG_OFFSET_H_READ_Z_OFFS_USR(&sgz_);
-	*/
-	return *this;
-}
 
 /**
 @brief      Resets the DMP firmware lockdown to allow firmware to be loaded again.
@@ -545,7 +398,7 @@ Simple_MPU6050 & Simple_MPU6050::load_firmware(uint16_t  length, const uint8_t *
 		}
 		for (uint16_t c = 0; c < this_write; c++) {
 			Serial.print(F(" 0x"));
-			Serial.print(cur[c] >> 4, HEX); //Prints 0 insted of nothing when byte is less than 8
+			Serial.print(cur[c] >> 4, HEX); //Prints 0 instead of nothing when byte is less than 8
 			Serial.print(cur[c] & 0X0F, HEX); // Prints the remainder of the hex number
 			Serial.print(F(","));
 		}
@@ -611,45 +464,6 @@ uint8_t Simple_MPU6050::TestConnection(int Stop ) {
 //***************************************************************************************
 
 // usage after configuration of the MPU6050 to your liking Get these registers to simplify MPU6050 startup
-void Simple_MPU6050::view_Vital_MPU_Registers() {
-	uint8_t val;
-	// Reset code for your convenience:
-	Serial.println(F("uint8_t val;"
-	"PWR_MGMT_1_WRITE_DEVICE_RESET();" //PWR_MGMT_1: reset with 100ms delay and full SIGNAL_PATH_RESET: with another 100ms delay
-	"MPUi2cWriteByte(0x6B, 0x01);/n"    // 0000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
-	"MPUi2cWriteByte(0x38, 0x00);/n"    // 0000 0000 INT_ENABLE: no Interrupt
-	"MPUi2cWriteByte(0x23, 0x00);/n")); // 0000 0000 MPU FIFO_EN: (all off) Using DMP's FIFO instead
-	Serial.print(F("writeByte(devAddr,0x1C, 0x")); readBytes(0x68, 0x1C, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // ACCEL_CONFIG:
-	Serial.print(F("writeByte(devAddr,0x37, 0x")); readBytes(0x68, 0x37, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // INT_PIN_CFG:
-	Serial.print(F("writeByte(devAddr,0x6B, 0x")); readBytes(0x68, 0x6B, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // PWR_MGMT_1:
-	Serial.print(F("writeByte(devAddr,0x19, 0x")); readBytes(0x68, 0x19, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // SMPLRT_DIV:
-	Serial.print(F("writeByte(devAddr,0x1A, 0x")); readBytes(0x68, 0x1A, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // CONFIG:
-	Serial.println(F("delay(100);/n"
-	"load_firmware(DMP_CODE_SIZE, dmp_memory);/n"  // Loads the DMP image into the MPU6050 Memory
-	"MPUi2cWriteInt(0x70,  0x0400);/n"              //DMP Program Start Address"
-	"setOffset(OFFSETS);/n" ));                       // Load Calibration offset values into MPU
-	Serial.print(F("writeByte(devAddr,0x1B, 0x")); readBytes(0x68, 0x19, 1, &val); Serial.print((val >> 4), HEX); Serial.print((val & 0x0F), HEX); Serial.println(F(");/n")); // GYRO_CONFIG:
-	Serial.println(F("MPUi2cWriteByte(0x6A, 0xC0));/n"  // 1100 1100 USER_CTRL: Enable Fifo and Reset Fifo
-	"MPUi2cWriteBytes(0x38, 0x02));/n"  // 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
-	"attachInterrupt(0, [] { mpuInterrupt = true;}, FALLING);/n"
-	"reset_fifo();/n"));
-}
-
-void view_MPU_Startup_Registers() {
-	// Reset code for your convenience:
-	ShowByte(0x23);
-	ShowByte(0x1C);
-	ShowByte(0x37);
-	ShowByte(0x6B);
-	ShowByte(0x19);
-	ShowByte(0x1A);
-	ShowByte(0x70);
-	ShowByte(0x1B);
-	ShowByte(0x6A);
-	ShowByte(0x38);
-}
-
-
 
 Simple_MPU6050 &  Simple_MPU6050::GetActiveOffsets(int16_t* Data) {
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
@@ -686,47 +500,43 @@ Simple_MPU6050 & Simple_MPU6050::PrintActiveOffsets( ) {
 	return *this;
 }
 
-// I used the following function to retrieve a working configured DMP firmware instance for use in this program
-// copy and modify this function to work elseware
-/**
-@brief      View the DMP firmware.
-*/
-bool Simple_MPU6050::view_DMP_firmware_Instance(uint16_t  length) {
-	uint16_t  ii;
-	uint16_t  this_read;
-	uint16_t bankNum = 0;
-	#define LOAD_CHUNK  (16)
-	uint8_t cur[LOAD_CHUNK];
-	Serial.print(F("const unsigned char dmp_memory[DMP_CODE_SIZE] PROGMEM = {\n"));
-		for (ii = 0; ii < length; ii += this_read) {
-			this_read = min(LOAD_CHUNK, length - ii);
-			writeWords(devAddr, 0x6D, 1,  &ii);
-			readBytes(devAddr, 0x6F,  this_read, cur);
-			if ((ii % (16 * 16)) == 0) {
-				Serial.print(F("/* bank # "));
-				Serial.print(bankNum++);
-				Serial.println(F(" */"));
-			}
-			for (uint16_t c = 0; c < this_read; c++) {
-				Serial.print(F(" 0x"));
-				Serial.print(cur[c] >> 4, HEX); //Prints 0 insted of nothing when byte is less than 8
-				Serial.print(cur[c] & 0X0F, HEX); // Prints the remainder of the hex number
-				Serial.print(F(","));
-			}
-			Serial.println();
-		}
-	Serial.println(F("};"));
-	return true;
-}
 
 //***************************************************************************************
 //**********************           Calibration Routines            **********************
 //***************************************************************************************
+
+/**
+@brief      ***EVERYTHING!*** needed to get DMP up and running! With Calibration!!!
+*/
+
+Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(int16_t ax_, int16_t ay_, int16_t az_, int16_t gx_, int16_t gy_, int16_t gz_) {
+	sax_ = ax_;
+	say_ = ay_;
+	saz_ = az_;
+	sgx_ = gx_;
+	sgy_ = gy_;
+	sgz_ = gz_;
+	CalibrateMPU(10);
+	return *this;
+}
+
+Simple_MPU6050 & Simple_MPU6050::CalibrateMPU(uint8_t Loops) {
+	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
+	if(WhoAmI < 0x38){
+		Serial.println(F("Found MPU6050 or MPU9150"));
+		}else {
+		Serial.println(F("Found MPU6500 or MPU9250"));
+	}
+	CalibrateAccel(Loops);
+	CalibrateGyro(Loops);
+	return *this;
+}
 /**
 @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
 Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
-	Serial.print("Calibrate Gyro");
+	load_DMP_Image(true);
+    Serial.print("Calibrate Gyro ");
 	double kP = 0.3;
 	double kI = 90;
 	float x;
@@ -746,7 +556,8 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateGyro(uint8_t Loops ) {
 */
 
 Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
-	Serial.print("Calibrate Accel");
+	load_DMP_Image(true);
+	Serial.print("Calibrate Accel ");
 	float kP = 0.3;
 	float kI = 90;
 	float x;
@@ -756,12 +567,10 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 	PID( 0x3B, kP, kI,  Loops);
 	if(!WhoAmI) WHO_AM_I_READ_WHOAMI(&WhoAmI);
 	if(WhoAmI < 0x38){
-		Serial.println(F("Found MPU6050 or MPU9150"));
 		XA_OFFSET_H_READ_XA_OFFS(&sax_);
 		YA_OFFSET_H_READ_YA_OFFS(&say_);
 		ZA_OFFSET_H_READ_ZA_OFFS(&saz_);
 		}else {
-		Serial.println(F("Found MPU6500 or MPU9250"));
 		XA_OFFSET_H_READ_0x77_XA_OFFS(&sax_);
 		YA_OFFSET_H_READ_0x77_YA_OFFS(&say_);
 		ZA_OFFSET_H_READ_0x77_ZA_OFFS(&saz_);
@@ -771,9 +580,9 @@ Simple_MPU6050 & Simple_MPU6050::CalibrateAccel(uint8_t Loops ) {
 }
 
 #define SPrint(Data) Serial.print(Data);Serial.print(", ");
+
 Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops) {
 	uint8_t SaveAddress = (ReadAddress == 0x3B)?((WhoAmI < 0x38 )? 0x06:0x77):0x13;
-
 	int16_t  Data;
 	float Reading;
 	int16_t BitZero[3];
@@ -783,7 +592,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 	uint32_t eSum ;
 	Serial.write('>');
 	for (int i = 0; i < 3; i++) {
-		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+		ReadInts(SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
 		Reading = Data;
 		if(SaveAddress != 0x13){
 			BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
@@ -792,12 +601,12 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 			ITerm[i] = Reading * 4;
 		}
 	}
-	for (int L = 0; L < Loops; L++) {
+    for (int L = 0; L < Loops; L++) {
 		eSample = 0;
 		for (int c = 0; c < 100; c++) {// 100 PI Calculations
 			eSum = 0;
 			for (int i = 0; i < 3; i++) {
-				I2Cdev::readWords(devAddr, ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+				ReadInts( ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
 				Reading = Data;
 				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;	//remove Gravity
 				Error = -Reading;
@@ -808,7 +617,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 					Data = round((PTerm + ITerm[i] ) / 8);		//Compute PID Output
 					Data = ((Data)&0xFFFE) |BitZero[i];			// Insert Bit0 Saved at beginning
 				} else Data = round((PTerm + ITerm[i] ) / 4);	//Compute PID Output
-				I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+				WriteInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
 			}
 			if((c == 99) && eSum > 1000){						// Error is still to great to continue
 				c = 0;
@@ -819,6 +628,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 			delay(1);
 		}
 		Serial.write('.');
+
 		kP *= .75;
 		kI *= .75;
 		for (int i = 0; i < 3; i++){
@@ -826,7 +636,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 				Data = round((ITerm[i] ) / 8);		//Compute PID Output
 				Data = ((Data)&0xFFFE) |BitZero[i];	// Insert Bit0 Saved at beginning
 			} else Data = round((ITerm[i]) / 4);
-			I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+			WriteInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
 		}
 	}
 	SIGNAL_PATH_FULL_RESET_WRITE_RESET();
@@ -1014,7 +824,7 @@ Simple_MPU6050 & Simple_MPU6050::MagneticNorth(float*data, VectorInt16 *v, Quate
 
 
 //***************************************************************************************
-//**********************      Helper Magnetometer Functtions       **********************
+//**********************      Helper Magnetometer Functions       **********************
 //***************************************************************************************
 #define PRINTHEX(Num) print(Num>>4,HEX);Serial.print(Num&0X0F,HEX);
 Simple_MPU6050 & Simple_MPU6050::I2CScanner(){
@@ -1046,7 +856,7 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	akm_addr = FindAddress(0x0C,0x0F);
 	AKM_WHOAMI_READ(akm_addr,&akm_WhoAmI);
 	//viewMagRegisters();
-	if(!ReadStatus()){
+	if(!ReadSuccess()){magmagcalMPU
 		Serial.print(F("Failed to Find Magnetometer"));
 		INT_PIN_CFG_WRITE_BYPASS_EN(0);
 		akm_addr = 0;
@@ -1107,7 +917,7 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 		I2C_MST_CTRL_WRITE_I2C_MST_CLK_400();
 		I2C_MST_CTRL_READ_ALL(&Num);
 		DPRINTBINLX("I2C_MST_CTRL_ = 0B", Num,1);
-		//writeByte(MPU9250_ADDRESS, I2C_MST_DELAY_CTRL 0x67, 0x81	0B 1000 0001) ; // Use blocking data retreival and enable delay for mag sample rate mismatch
+		//writeByte(MPU9250_ADDRESS, I2C_MST_DELAY_CTRL 0x67, 0x81	0B 1000 0001) ; // Use blocking data retrieval and enable delay for mag sample rate mismatch
 		I2C_MST_DELAY_CTRL_WRITE_DELAY_ES_SHADOW(1);
 		I2C_MST_DELAY_CTRL_WRITE_I2C_SLV1_DLY_EN(1);
 		I2C_MST_DELAY_CTRL_WRITE_I2C_SLV0_DLY_EN(1);
@@ -1313,28 +1123,6 @@ bool Simple_MPU6050::readMagData(float *magData){
 	return true;
 }
 
-/*
-// Work in Progress:
-Simple_MPU6050 & Simple_MPU6050::readMagDataThroughMPU(){
-	delay(2);
-	//readBytes(MPU9250_ADDRESS, EXT_SENS_DATA_00, 8, &rawData[0]);        // Read the x-, y-, and z-axis calibration values
-	EXT_SENS_DATA_READ_LENGTH(8,buffer);
-	mag[0] = (float)((((int16_t)buffer[1]) << 8) | buffer[0]);
-	mag[1] = (float)((((int16_t)buffer[3]) << 8) | buffer[2]);
-	mag[2] = (float)((((int16_t)buffer[5]) << 8) | buffer[4]);
-	
-	Serial.printfloatx(F("mag xyz")     , mag[0],  15, 3, F(",   "));
-	Serial.printfloatx(F("")            , mag[1],  15, 3, F(",   "));
-	Serial.printfloatx(F("")            , mag[2],  15, 3, F("\t"));
-	//I2Cdev::writeByte(0x0C, 0x0A, 0x01); //enable the magnetometer
-	return *this;
-}
-*/
-
-
-
-
-#define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // A Way to do a Blink without Delay timer
 
 // I have not proven this to be correct.
 Simple_MPU6050 & Simple_MPU6050::magcalMPU(){
@@ -1442,8 +1230,8 @@ Simple_MPU6050 & Simple_MPU6050::PrintMagOffsets(){
 //Print the Mag Configuration registers
 Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 	uint8_t D;
-	MPUi2cReadByte(akm_addr,0,&D);
-	Serial.print((ReadCnt())? "R ":"X ");
+	ReadByte(akm_addr,0,&D);
+	Serial.print((ReadCount())? "R ":"X ");
 	Serial.print(" Device ID 0x");
 	DPRINTHEX(D);
 	Serial.print(" 0B");
@@ -1452,8 +1240,8 @@ Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 	D = 0;
 
 	while(!D){
-		MPUi2cReadByte(akm_addr,0x02,&D);
-		Serial.print((ReadCnt())? "R ":"X ");
+		ReadByte(akm_addr,0x02,&D);
+		Serial.print((ReadCount())? "R ":"X ");
 		Serial.print(" Status 1 = 0x");
 		DPRINTHEX(D);
 		Serial.print(" 0B");
@@ -1464,8 +1252,8 @@ Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 	Serial.println("****************");
 	for(int i = 0X03;i<=0x08;i++){
 		D = 0;
-		if((i != 0x0B) && (i != 0x0D) && (i != 0x0E))  MPUi2cReadByte(akm_addr,i,&D);
-		Serial.print((ReadCnt())? "R ":"X ");
+		if((i != 0x0B) && (i != 0x0D) && (i != 0x0E))  ReadByte(akm_addr,i,&D);
+		Serial.print((ReadCount())? "R ":"X ");
 		Serial.print("Register = 0x");
 		DPRINTHEX(i);
 		switch(i){
@@ -1527,7 +1315,7 @@ Simple_MPU6050 & Simple_MPU6050::viewMagRegisters(){
 		Serial.println();
 	}
 	Serial.println("\n");
-	I2Cdev::writeByte(0x0C,0x0A ,  1 << 4 | 0x01 );// 16bit single measurement mode
+	WriteByte(0x0C,0x0A ,  1 << 4 | 0x01 );// 16bit single measurement mode
 
 	//	AKM_CNTL_WRITE_CONT_MEAS_MODE1(akm_addr,1);
 	//Serial.println((WriteStatus())? "W-AKM_CNTL_WRITE_CONT_MEAS_MODE1":"X-AKM_CNTL_WRITE_CONT_MEAS_MODE1");

@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,8 +15,8 @@
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
@@ -24,7 +24,7 @@
 
 /* 2 MPUXXXX Example
     These can be any MPU MPU6050, MPU6500, MPU9150, MPU9155, MPU9250 ETC...
-    Attach 2 MPU's to the I2C buss
+    Attach multiple MPU's to the I2C buss
     Power both MPU's According to specs. Generic Breakout Version Powers with 5V and has a onboard Voltage regulator.
     attach a 2K ohm resister between Pin 6 and AD0 on mpu#1
     attach a 2K ohm resister between Pin 7 and AD0 on mpu#2
@@ -51,77 +51,54 @@ Simple_MPU6050 mpu(Six_Axis_Quaternions);
 /*             _________________________________________________________*/
 
 //***************************************************************************************
-//******************                Print Funcitons                **********************
+//******************                Print Macors                   **********************
 //***************************************************************************************
 
 #define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // (BLACK BOX) Ya, don't complain that I used "for(;;){}" instead of "if(){}" for my Blink Without Delay Timer macro. It works nicely!!!
 
-/* printfloatx() is a helper Macro used with the Serial class to simplify my code and provide enhanced viewing of Float and interger values:
+/* printfloatx() is a helper Macro used with the Serial class to simplify my code and provide enhanced viewing of Float and intergers values:
    usage: printfloatx(Name,Variable,Spaces,Precision,EndTxt);
    Name and EndTxt are just char arrays
    Variable is any numerical value byte, int, long and float
    Spaces is the number of spaces the floating point number could possibly take up including +- and decimal point.
-   Percision is the number of digits after the decimal point set to zero for intergers
+   Precision is the number of digits after the decimal point set to zero for intergers
 */
 
 #define printfloatx(Name,Variable,Spaces,Precision,EndTxt) print(Name); {char S[(Spaces + Precision + 3)];Serial.print(F(" ")); Serial.print(dtostrf((float)Variable,Spaces,Precision ,S));}Serial.print(EndTxt);//printfloatx(Name,Variable,Spaces,Precision,EndTxt)
 
-int PrintValues(int32_t *quat, uint16_t SpamDelay = 100) {
-
+//***************************************************************************************
+//******************              Callback Funciton                **********************
+//***************************************************************************************
+void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
   Quaternion q;
   VectorFloat gravity;
   float ypr[3] = { 0, 0, 0 };
   float xyz[3] = { 0, 0, 0 };
-  spamtimer(SpamDelay) {// non blocking delay before printing again. This skips the following code when delay time (ms) hasn't been met
-
+  spamtimer(100) {// non blocking delay before printing again. This skips the following code when delay time (ms) hasn't been met
     mpu.GetQuaternion(&q, quat);
     mpu.GetGravity(&gravity, &q);
     mpu.GetYawPitchRoll(ypr, &q, &gravity);
     mpu.ConvertToDegrees(ypr, xyz);
-
     Serial.print(F("MPU #"));
     Serial.print(MPUNumber);
     Serial.print(" ");
-    
     Serial.printfloatx(F("Yaw")  , xyz[0], 9, 4, F(", ")); //printfloatx is a Helper Macro that works with Serial.print that I created (See #define above)
     Serial.printfloatx(F("Pitch"), xyz[1], 9, 4, F(", "));
     Serial.printfloatx(F("Roll") , xyz[2], 9, 4, F("\n"));
   }
 }
 
-//***************************************************************************************
-//******************              Callback Funciton                **********************
-//***************************************************************************************
-
-
-void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat, uint32_t *timestamp) {
-  uint8_t Spam_Delay = 10; // Built in Blink without delay timer preventing Serial.print SPAM
-  PrintValues(quat, Spam_Delay);
-
-}
 
 //***************************************************************************************
 //******************                Setup and Loop                 **********************
 //***************************************************************************************
 
 void setup() {
-
-  uint8_t val;
-  // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#ifdef __AVR__  
-  Wire.setWireTimeout(3000, true); //timeout value in uSec
-#endif
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
   // initialize serial communication
   Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
-  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS)
+  mpu.SetAddress(MPU6050_DEFAULT_ADDRESS);
   mpu.Set_DMP_Output_Rate_Hz(5);           // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
   //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute

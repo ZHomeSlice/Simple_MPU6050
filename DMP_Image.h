@@ -1,5 +1,5 @@
 /* ============================================
-  I2Cdev device library code is placed under the MIT license
+  Simple_MPU6050 device library code is placed under the MIT license
   Copyright (c) 2021 Homer Creutz
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -15,13 +15,12 @@
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
   ===============================================
 */
-
 #ifndef DMP_Image_h
 #define DMP_Image_h
 
@@ -81,8 +80,8 @@
 #define CFG_GYRO_RAW_DATA       (2722)
 #define X_GRT_Y_TMP2            (1379)
 
-#define D_0_22                  (22+512)
-#define D_0_24                  (24+512)
+#define D_0_22                  (22+512) //534
+#define D_0_24                  (24+512) //536
 
 #define D_0_36                  (36)
 #define D_0_52                  (52)
@@ -97,96 +96,96 @@
 #define D_0_232                 (232)
 #define D_0_236                 (236)
 
-#define D_1_2                   (256 + 2)
-#define D_1_4                   (256 + 4)
-#define D_1_8                   (256 + 8)
-#define D_1_10                  (256 + 10)
-#define D_1_24                  (256 + 24)
-#define D_1_28                  (256 + 28)
-#define D_1_36                  (256 + 36)
-#define D_1_40                  (256 + 40)
-#define D_1_44                  (256 + 44)
-#define D_1_72                  (256 + 72)
-#define D_1_74                  (256 + 74)
-#define D_1_79                  (256 + 79)
-#define D_1_88                  (256 + 88)
-#define D_1_90                  (256 + 90)
-#define D_1_92                  (256 + 92)
-#define D_1_96                  (256 + 96)
-#define D_1_98                  (256 + 98)
-#define D_1_106                 (256 + 106)
-#define D_1_108                 (256 + 108)
-#define D_1_112                 (256 + 112)
-#define D_1_128                 (256 + 144)
-#define D_1_152                 (256 + 12)
-#define D_1_160                 (256 + 160)
-#define D_1_176                 (256 + 176)
-#define D_1_178                 (256 + 178)
-#define D_1_218                 (256 + 218)
-#define D_1_232                 (256 + 232)
-#define D_1_236                 (256 + 236)
-#define D_1_240                 (256 + 240)
-#define D_1_244                 (256 + 244)
-#define D_1_250                 (256 + 250)
-#define D_1_252                 (256 + 252)
-#define D_2_12                  (512 + 12)
-#define D_2_96                  (512 + 96)
-#define D_2_108                 (512 + 108)
-#define D_2_208                 (512 + 208)
-#define D_2_224                 (512 + 224)
-#define D_2_236                 (512 + 236)
-#define D_2_244                 (512 + 244)
-#define D_2_248                 (512 + 248)
-#define D_2_252                 (512 + 252)
+#define D_1_2                   (256 + 2) //258
+#define D_1_4                   (256 + 4) //260
+#define D_1_8                   (256 + 8) //264
+#define D_1_10                  (256 + 10) //266
+#define D_1_24                  (256 + 24) //280
+#define D_1_28                  (256 + 28) //284
+#define D_1_36                  (256 + 36) //292
+#define D_1_40                  (256 + 40) //296
+#define D_1_44                  (256 + 44) //300
+#define D_1_72                  (256 + 72) //328
+#define D_1_74                  (256 + 74) //330
+#define D_1_79                  (256 + 79) //335
+#define D_1_88                  (256 + 88) //344
+#define D_1_90                  (256 + 90) //346
+#define D_1_92                  (256 + 92) //348
+#define D_1_96                  (256 + 96) //352
+#define D_1_98                  (256 + 98) //354
+#define D_1_106                 (256 + 106) //362
+#define D_1_108                 (256 + 108) //364
+#define D_1_112                 (256 + 112) //368
+#define D_1_128                 (256 + 144) //400
+#define D_1_152                 (256 + 12) //268
+#define D_1_160                 (256 + 160) //416
+#define D_1_176                 (256 + 176) //432
+#define D_1_178                 (256 + 178) //434
+#define D_1_218                 (256 + 218) //474
+#define D_1_232                 (256 + 232) //488
+#define D_1_236                 (256 + 236) //492
+#define D_1_240                 (256 + 240) //496
+#define D_1_244                 (256 + 244) //500
+#define D_1_250                 (256 + 250) //506
+#define D_1_252                 (256 + 252) //508
+#define D_2_12                  (512 + 12) //524
+#define D_2_96                  (512 + 96) //608
+#define D_2_108                 (512 + 108) //620
+#define D_2_208                 (512 + 208) //720
+#define D_2_224                 (512 + 224) //736
+#define D_2_236                 (512 + 236) //748
+#define D_2_244                 (512 + 244) //756
+#define D_2_248                 (512 + 248) //760
+#define D_2_252                 (512 + 252) //764
 
-#define CPASS_BIAS_X            (35 * 16 + 4)
-#define CPASS_BIAS_Y            (35 * 16 + 8)
-#define CPASS_BIAS_Z            (35 * 16 + 12)
-#define CPASS_MTX_00            (36 * 16)
-#define CPASS_MTX_01            (36 * 16 + 4)
-#define CPASS_MTX_02            (36 * 16 + 8)
-#define CPASS_MTX_10            (36 * 16 + 12)
-#define CPASS_MTX_11            (37 * 16)
-#define CPASS_MTX_12            (37 * 16 + 4)
-#define CPASS_MTX_20            (37 * 16 + 8)
-#define CPASS_MTX_21            (37 * 16 + 12)
-#define CPASS_MTX_22            (43 * 16 + 12)
-#define D_EXT_GYRO_BIAS_X       (61 * 16)
-#define D_EXT_GYRO_BIAS_Y       (61 * 16) + 4
-#define D_EXT_GYRO_BIAS_Z       (61 * 16) + 8
-#define D_ACT0                  (40 * 16)
-#define D_ACSX                  (40 * 16 + 4)
-#define D_ACSY                  (40 * 16 + 8)
-#define D_ACSZ                  (40 * 16 + 12)
+#define CPASS_BIAS_X            (35 * 16 + 4) //564
+#define CPASS_BIAS_Y            (35 * 16 + 8) //568
+#define CPASS_BIAS_Z            (35 * 16 + 12) //572
+#define CPASS_MTX_00            (36 * 16) //576
+#define CPASS_MTX_01            (36 * 16 + 4) //580
+#define CPASS_MTX_02            (36 * 16 + 8) //584
+#define CPASS_MTX_10            (36 * 16 + 12) //588
+#define CPASS_MTX_11            (37 * 16) //592
+#define CPASS_MTX_12            (37 * 16 + 4) //596
+#define CPASS_MTX_20            (37 * 16 + 8) //600
+#define CPASS_MTX_21            (37 * 16 + 12) //604
+#define CPASS_MTX_22            (43 * 16 + 12) //700
+#define D_EXT_GYRO_BIAS_X       (61 * 16) //976
+#define D_EXT_GYRO_BIAS_Y       (61 * 16) + 4 //980
+#define D_EXT_GYRO_BIAS_Z       (61 * 16) + 8 //984
+#define D_ACT0                  (40 * 16) //640
+#define D_ACSX                  (40 * 16 + 4) //644
+#define D_ACSY                  (40 * 16 + 8) //648
+#define D_ACSZ                  (40 * 16 + 12) //652
 
-#define FLICK_MSG               (45 * 16 + 4)
-#define FLICK_COUNTER           (45 * 16 + 8)
-#define FLICK_LOWER             (45 * 16 + 12)
-#define FLICK_UPPER             (46 * 16 + 12)
+#define FLICK_MSG               (45 * 16 + 4) //724
+#define FLICK_COUNTER           (45 * 16 + 8) //728
+#define FLICK_LOWER             (45 * 16 + 12) //732
+#define FLICK_UPPER             (46 * 16 + 12) //748
 
 #define D_AUTH_OUT              (992)
 #define D_AUTH_IN               (996)
 #define D_AUTH_A                (1000)
 #define D_AUTH_B                (1004)
 
-#define D_PEDSTD_BP_B           (768 + 0x1C)
-#define D_PEDSTD_HP_A           (768 + 0x78)
-#define D_PEDSTD_HP_B           (768 + 0x7C)
-#define D_PEDSTD_BP_A4          (768 + 0x40)
-#define D_PEDSTD_BP_A3          (768 + 0x44)
-#define D_PEDSTD_BP_A2          (768 + 0x48)
-#define D_PEDSTD_BP_A1          (768 + 0x4C)
-#define D_PEDSTD_INT_THRSH      (768 + 0x68)
-#define D_PEDSTD_CLIP           (768 + 0x6C)
-#define D_PEDSTD_SB             (768 + 0x28)
-#define D_PEDSTD_SB_TIME        (768 + 0x2C)
-#define D_PEDSTD_PEAKTHRSH      (768 + 0x98)
-#define D_PEDSTD_TIML           (768 + 0x2A)
-#define D_PEDSTD_TIMH           (768 + 0x2E)
-#define D_PEDSTD_PEAK           (768 + 0X94)
-#define D_PEDSTD_STEPCTR        (768 + 0x60)
-#define D_PEDSTD_TIMECTR        (964)
-#define D_PEDSTD_DECI           (768 + 0xA0)
+#define D_PEDSTD_BP_B           (768 + 0x1C) //796
+#define D_PEDSTD_HP_A           (768 + 0x78) //888
+#define D_PEDSTD_HP_B           (768 + 0x7C) //892
+#define D_PEDSTD_BP_A4          (768 + 0x40) //832
+#define D_PEDSTD_BP_A3          (768 + 0x44) //836
+#define D_PEDSTD_BP_A2          (768 + 0x48) //840
+#define D_PEDSTD_BP_A1          (768 + 0x4C) //844
+#define D_PEDSTD_INT_THRSH      (768 + 0x68) //872
+#define D_PEDSTD_CLIP           (768 + 0x6C) //876
+#define D_PEDSTD_SB             (768 + 0x28) //808
+#define D_PEDSTD_SB_TIME        (768 + 0x2C) //812
+#define D_PEDSTD_PEAKTHRSH      (768 + 0x98) //920
+#define D_PEDSTD_TIML           (768 + 0x2A) //810
+#define D_PEDSTD_TIMH           (768 + 0x2E) //814
+#define D_PEDSTD_PEAK           (768 + 0X94) //916
+#define D_PEDSTD_STEPCTR        (768 + 0x60) //864
+#define D_PEDSTD_TIMECTR        (964) // (768 + 0xC4)
+#define D_PEDSTD_DECI           (768 + 0xA0) //928
 
 #define D_HOST_NO_MOT           (976)
 #define D_ACCEL_BIAS            (660)
@@ -205,7 +204,7 @@
 
 
 #define DMP_CODE_SIZE           (3062)
-#define DMP_START_ADDRESS       (0x0400)
+#define DMP_START_ADDRESS       (0x0400) //1024
 
 
 #define TAP_X               (0x01)
@@ -281,7 +280,7 @@ static signed char gyro_orientation[9] = { 1, 0, 0,
  *  NOTE: This firmware instance is intended to be used with this class and may not work as 
  *  expected if used with other mpu6050 configuration programs.
  *  
- *  It's a merical! The DMP is Pre Configured to work!!!!!
+ *  It's a miracle! The DMP is Pre Configured to work!!!!!
  *  Actually I used another program to load Configure, test and verify that the DMP was working. 
  *  Then I simply read the DMP Firmware back using view_DMP_firmware_Instance() function
  *  I triggered this near the beginning of the program. I don't believe there is a problem 
@@ -471,7 +470,7 @@ const unsigned char dmp_memory[DMP_CODE_SIZE] PROGMEM = {
  0xC1, 0xC3, 0xD8, 0xB1, 0xB9, 0xF3, 0x8B, 0xA3, 0x91, 0xB6, 0x09, 0xB4, 0xD9, 0xAB, 0xDE, 0xB0, // 2688
  0x87, 0x9C, 0xB9, 0xA3, 0xDD, 0xF1, 0xB3, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0xB0, 0x87, 0x20, 0x28, // 2704
  0x30, 0x38, 0xB2, 0x8B, 0xB6, 0x9B, 0xF2, 0xA3, 0xC0, 0xC8, 0xC2, 0xC4, 0xCC, 0xC6, 0xA3, 0xA3, // 2720
- 0xA3, 0xF1, 0xB0, 0x87, 0xB5, 0x9A, 0x20, 0xF3, 0x9B, 0xA3, 0xA3, 0xDC, 0xBA, 0xAC, 0xDF, 0xB9, // 2736  change 2742 from 0xD8 to 0x20 Includiing the DMP_FEATURE_TAP -- known issue in which if you do not enable DMP_FEATURE_TAP then the interrupts will be at 200Hz even if fifo rate
+ 0xA3, 0xF1, 0xB0, 0x87, 0xB5, 0x9A, 0x20, 0xF3, 0x9B, 0xA3, 0xA3, 0xDC, 0xBA, 0xAC, 0xDF, 0xB9, // 2736  change 2742 from 0xD8 to 0x20 Including the DMP_FEATURE_TAP -- known issue in which if you do not enable DMP_FEATURE_TAP then the interrupts will be at 200Hz even if fifo rate
  0xA3, 0xFE, 0xF2, 0xAB, 0xC4, 0xAA, 0xF1, 0xDF, 0xDF, 0xBB, 0xAF, 0xDF, 0xDF, 0xA3, 0xA3, 0xA3, // 2752
  0xD8, 0xD8, 0xD8, 0xBB, 0xB3, 0xB7, 0xF1, 0xAA, 0xF9, 0xDA, 0xFF, 0xD9, 0x80, 0x9A, 0xAA, 0x28, // 2768
  0xB4, 0x80, 0x98, 0xA7, 0x20, 0xB7, 0x97, 0x87, 0xA8, 0x66, 0x88, 0xF0, 0x79, 0x51, 0xF1, 0x90, // 2784
