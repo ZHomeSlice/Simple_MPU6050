@@ -856,7 +856,7 @@ Simple_MPU6050 & Simple_MPU6050::AKM_Init(){
 	akm_addr = FindAddress(0x0C,0x0F);
 	AKM_WHOAMI_READ(akm_addr,&akm_WhoAmI);
 	//viewMagRegisters();
-	if(!ReadSuccess()){magmagcalMPU
+	if(!ReadSuccess()){
 		Serial.print(F("Failed to Find Magnetometer"));
 		INT_PIN_CFG_WRITE_BYPASS_EN(0);
 		akm_addr = 0;
