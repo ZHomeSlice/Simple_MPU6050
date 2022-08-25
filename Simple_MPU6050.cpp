@@ -50,9 +50,7 @@ volatile uint8_t _maxPackets;
 #define Six_Axis_Low_Power_Quaternions 6  // Default
 
 Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
-    begin();
-    setClock(400000); // 400kHz I2C clock. 
-    setWireTimeout(3000, true); //timeout value in uSec
+
     _DMPMode = DMPMode;
 	SetAddress(MPU6050_DEFAULT_ADDRESS);
 	packet_length = 28;

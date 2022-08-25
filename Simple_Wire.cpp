@@ -23,6 +23,9 @@ THE SOFTWARE.
 */ #include "Simple_Wire.h"
 
 Simple_Wire::Simple_Wire() {
+    begin();
+    setClock(400000); // 400kHz I2C clock. 
+    setWireTimeout(3000, true); //timeout value in uSec
 }
 
 Simple_Wire::Simple_Wire(uint8_t address) {
