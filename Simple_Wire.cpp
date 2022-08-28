@@ -75,12 +75,10 @@ Simple_Wire & Simple_Wire::ReadBytes(uint8_t AltAddress,uint8_t regAddr, uint8_t
         beginTransmission(AltAddress);
         write(regAddr);
         endTransmission();
-        beginTransmission(AltAddress);
         requestFrom((uint8_t)AltAddress, (uint8_t)min((int)length - k, WIRE_BUFFER_LENGTH));
         for (; available(); I2CReadCount++) {
             Data[I2CReadCount] = read();
         }
-        endTransmission();
     }
    	return *this;
 }
@@ -108,7 +106,6 @@ Simple_Wire & Simple_Wire::ReadInts(uint8_t AltAddress,uint8_t regAddr, uint16_t
             beginTransmission(AltAddress);
             write(regAddr);
             endTransmission();
-            beginTransmission(AltAddress);
             requestFrom(AltAddress, (uint8_t)(size * 2)); // length=words, this wants bytes
 
             bool msb = true; // starts with MSB, then LSB
@@ -123,7 +120,6 @@ Simple_Wire & Simple_Wire::ReadInts(uint8_t AltAddress,uint8_t regAddr, uint16_t
                 }
                 msb = !msb;
             }
-            endTransmission();
         }
     return *this;
 }
