@@ -35,10 +35,10 @@
 #define RA_Y_FINE_GAIN_READ(Data)         									ReadByte(0x04, (uint8_t *)Data)		 //[7:0] Y_FINE_GAIN
 #define RA_Z_FINE_GAIN_READ(Data)         									ReadByte(0x05, (uint8_t *)Data)		 //[7:0] Z_FINE_GAIN
 //6050 Accellerator Offsets
-#define A_OFFSET_H_READ_A_OFFS(Data)												ReadInts(0x06, 3, (uint16_t *)Data)//   X accelerometer offset cancellation
-#define XA_OFFSET_H_READ_XA_OFFS(Data)											ReadInt(0x06, (uint16_t *)Data)    //   X accelerometer offset cancellation
-#define YA_OFFSET_H_READ_YA_OFFS(Data)											ReadInt(0x08, (uint16_t *)Data)    //   Y accelerometer offset cancellation
-#define ZA_OFFSET_H_READ_ZA_OFFS(Data)											ReadInt(0x0A, (uint16_t *)Data)    //   Z accelerometer offset cancellation
+#define A_OFFSET_H_READ_A_OFFS(Data)												ReadUInts(0x06, 3, (uint16_t *)Data)//   X accelerometer offset cancellation
+#define XA_OFFSET_H_READ_XA_OFFS(Data)											ReadUInt(0x06, (uint16_t *)Data)    //   X accelerometer offset cancellation
+#define YA_OFFSET_H_READ_YA_OFFS(Data)											ReadUInt(0x08, (uint16_t *)Data)    //   Y accelerometer offset cancellation
+#define ZA_OFFSET_H_READ_ZA_OFFS(Data)											ReadUInt(0x0A, (uint16_t *)Data)    //   Z accelerometer offset cancellation
 //9250 Self Test Accel
 //#define SELF_TEST_X_ACCEL_READ_XA_ST_DATA(Data)						ReadByte(0x0D, (uint8_t *)Data)    //   self test output generated during manufacturing tests
 //#define SELF_TEST_Y_ACCEL_READ_YA_ST_DATA(Data)						ReadByte(0x0E, (uint8_t *)Data)    //   self test output generated during manufacturing tests
@@ -51,10 +51,10 @@
 #define SELF_TEST_Z_READ_ZA_TEST(Data)											ReadBit(0x0F, 3, 7, (uint8_t *)Data)  //   self test output generated during manufacturing tests
 #define SELF_TEST_Z_READ_ZG_TEST(Data)											ReadBit(0x0F, 5, 4, (uint8_t *)Data)  //   self test output generated during manufacturing tests
 //Both
-#define XG_OFFSET_H_READ_OFFS_USR(Data)											ReadInts(0x13, 3, (uint16_t *)Data)//   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define XG_OFFSET_H_READ_X_OFFS_USR(Data)										ReadInt(0x13, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define YG_OFFSET_H_READ_Y_OFFS_USR(Data)										ReadInt(0x15, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define ZG_OFFSET_H_READ_Z_OFFS_USR(Data)										ReadInt(0x17, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define XG_OFFSET_H_READ_OFFS_USR(Data)											ReadUInts(0x13, 3, (uint16_t *)Data)//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define XG_OFFSET_H_READ_X_OFFS_USR(Data)										ReadUInt(0x13, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define YG_OFFSET_H_READ_Y_OFFS_USR(Data)										ReadUInt(0x15, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define ZG_OFFSET_H_READ_Z_OFFS_USR(Data)										ReadUInt(0x17, (uint16_t *)Data)    //   Remove DC bias from the gyro sensor Step 0.0305 dps
 
 #define SMPLRT_DIV_READ_SMPLRT_DIV(Data)										ReadByte(0x19, (uint8_t *)Data)    //   Divides the internal sample rate  controls sensor data output rate, FIFO sample rate.   SAMPLE_RATE= Internal_Sample_Rate / (1 + SMPLRT_DIV)
 
@@ -183,7 +183,7 @@
 #define INT_ENABLE_READ_RAW_DMP_INT_EN(Data)                ReadBit(0x38, 1, 1, (uint8_t *)Data)  //   1   Enable
 #define INT_ENABLE_READ_RAW_RDY_EN(Data)                    ReadBit(0x38, 1, 0, (uint8_t *)Data)  //   1   Enable Raw Sensor Data Ready interrupt to propagate to interrupt pin.  0   function is disabled.
 
-//#define INT_STATUS_ALL_READ(Data)                           ReadInt(0x39,  (uint16_t *)Data) //  Read INT_STATUS_DMP_READ 
+//#define INT_STATUS_ALL_READ(Data)                           ReadUInt(0x39,  (uint16_t *)Data) //  Read INT_STATUS_DMP_READ 
 // Above first byte is considered a read. so the second byte is cleared... fail
 // Create macros for all read to detect the states of each byte
 
@@ -200,21 +200,21 @@
 #define INT_STATUS_READ_RAW_DATA_RDY_INT(Data)              ReadBit(0x3A, 1, 0, (uint8_t *)Data)  //   1   Sensor Register Raw Data sensors are updated and Ready to be read.
 
 
-#define ACCEL_XOUT_H_READ_ACCEL_TMP_GYTO(Data)              ReadInts(0x3B,7, (uint16_t *)Data) //   accelerometer x-axis data.
+#define ACCEL_XOUT_H_READ_ACCEL_TMP_GYTO(Data)              ReadUInts(0x3B,7, (uint16_t *)Data) //   accelerometer x-axis data.
 
-#define ACCEL_XOUT_H_READ_ACCEL(Data)                       ReadInts(0x3B, 3, (uint16_t *)Data)//   accelerometer x-axis data.
+#define ACCEL_XOUT_H_READ_ACCEL(Data)                       ReadUInts(0x3B, 3, (uint16_t *)Data)//   accelerometer x-axis data.
 
-#define ACCEL_XOUT_H_READ_ACCEL_XOUT(Data)                  ReadInt(0x3B, (uint16_t *)Data)    //   accelerometer x-axis data.
-#define ACCEL_YOUT_H_READ_ACCEL_YOUT(Data)                  ReadInt(0x3D, (uint16_t *)Data)    //   accelerometer y-axis data.
-#define ACCEL_ZOUT_H_READ_ACCEL_ZOUT(Data)                  ReadInt(0x3F, (uint16_t *)Data)    //   accelerometer z-axis data.
+#define ACCEL_XOUT_H_READ_ACCEL_XOUT(Data)                  ReadUInt(0x3B, (uint16_t *)Data)    //   accelerometer x-axis data.
+#define ACCEL_YOUT_H_READ_ACCEL_YOUT(Data)                  ReadUInt(0x3D, (uint16_t *)Data)    //   accelerometer y-axis data.
+#define ACCEL_ZOUT_H_READ_ACCEL_ZOUT(Data)                  ReadUInt(0x3F, (uint16_t *)Data)    //   accelerometer z-axis data.
 
-#define TEMP_OUT_H_READ_TEMP_OUT(Data)                      ReadInt(0x41, (uint16_t *)Data)    //   temperature sensor output   TEMP_degC = ((TEMP_OUT   RoomTemp_Offset)/Temp_Sensitivity) + 21degC
+#define TEMP_OUT_H_READ_TEMP_OUT(Data)                      ReadUInt(0x41, (uint16_t *)Data)    //   temperature sensor output   TEMP_degC = ((TEMP_OUT   RoomTemp_Offset)/Temp_Sensitivity) + 21degC
 
-#define GYRO_XOUT_H_READ_GYRO(Data)                         ReadInts(0x43, 3, (uint16_t *)Data)//   X-Axis gyroscope output
+#define GYRO_XOUT_H_READ_GYRO(Data)                         ReadUInts(0x43, 3, (uint16_t *)Data)//   X-Axis gyroscope output
 
-#define GYRO_XOUT_H_READ_GYRO_XOUT(Data)                    ReadInt(0x43, (uint16_t *)Data)    //   X-Axis gyroscope output
-#define GYRO_YOUT_H_READ_GYRO_YOUT(Data)                    ReadInt(0x45, (uint16_t *)Data)    //   Y-Axis gyroscope output
-#define GYRO_ZOUT_H_READ_GYRO_ZOUT(Data)                    ReadInt(0x47, (uint16_t *)Data)    //   Z-Axis gyroscope output
+#define GYRO_XOUT_H_READ_GYRO_XOUT(Data)                    ReadUInt(0x43, (uint16_t *)Data)    //   X-Axis gyroscope output
+#define GYRO_YOUT_H_READ_GYRO_YOUT(Data)                    ReadUInt(0x45, (uint16_t *)Data)    //   Y-Axis gyroscope output
+#define GYRO_ZOUT_H_READ_GYRO_ZOUT(Data)                    ReadUInt(0x47, (uint16_t *)Data)    //   Z-Axis gyroscope output
 
 
 #define EXT_SENS_DATA_READ_LENGTH(Length,Data)							ReadBytes(0x49,Length, (uint8_t *)Data)  //   Sensor data read from external I2C devices
@@ -295,18 +295,18 @@
 #define PWR_MGMT_2_READ_DIS_YG(Data)			  			          ReadBit(0x6C, 1, 2, (uint8_t *)Data)  //   1   Y gyro is disabled 0   Y gyro is on
 #define PWR_MGMT_2_READ_DIS_ZG(Data)			   						    ReadBit(0x6C, 1, 1, (uint8_t *)Data)  //   1   Z gyro is disabled 0   Z gyro is on
 
-#define BANK_SEL_READ(Data)																	ReadInt(0x6D, (uint16_t *)Data)  //   DMP Bank Select for Loading Image
-#define DMP_MEM_START_ADDR_READ(Data)			     			        ReadInt(0x6E, (uint16_t *)Data)  //   Not Used
+#define BANK_SEL_READ(Data)																	ReadUInt(0x6D, (uint16_t *)Data)  //   DMP Bank Select for Loading Image
+#define DMP_MEM_START_ADDR_READ(Data)			     			        ReadUInt(0x6E, (uint16_t *)Data)  //   Not Used
 #define DMP_MEM_READ(Length,Data)			        			        ReadBytes(0x6F,Length, (uint8_t *)Data)  // DMP Image Loading Location
-#define PRGM_START_H_READ(Data)													  	ReadInt(0x70, (uint16_t *)Data)  // Set program start address.
+#define PRGM_START_H_READ(Data)													  	ReadUInt(0x70, (uint16_t *)Data)  // Set program start address.
 
-#define FIFO_COUNTH_READ_FIFO_CNT(Data)											ReadInt(0x72, (uint16_t *)Data)  //   High Bits, count indicates the number of written bytes in the FIFO.
+#define FIFO_COUNTH_READ_FIFO_CNT(Data)											ReadUInt(0x72, (uint16_t *)Data)  //   High Bits, count indicates the number of written bytes in the FIFO.
 #define FIFO_READ(PacketLength, Data)												ReadBytes(0x74, PacketLength, (uint8_t *)Data)  //   Read/Write command provides Read or Write operation for the FIFO.
 #define WHO_AM_I_READ_WHOAMI(Data)                          ReadBit(0x75,6,6, (uint8_t *)Data)  //   Register to indicate to user which device is being accessed.
 //6500 and 9250
-#define XA_OFFSET_H_READ_0x77_XA_OFFS(Data)									ReadInt(0x77, (uint16_t *)Data)  //   X accelerometer offset cancellation
-#define YA_OFFSET_H_READ_0x77_YA_OFFS(Data)					  			ReadInt(0x7A, (uint16_t *)Data)  //   Y accelerometer offset cancellation
-#define ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data)								  ReadInt(0x7D, (uint16_t *)Data)  //   Z accelerometer offset cancellation
+#define XA_OFFSET_H_READ_0x77_XA_OFFS(Data)									ReadUInt(0x77, (uint16_t *)Data)  //   X accelerometer offset cancellation
+#define YA_OFFSET_H_READ_0x77_YA_OFFS(Data)					  			ReadUInt(0x7A, (uint16_t *)Data)  //   Y accelerometer offset cancellation
+#define ZA_OFFSET_H_READ_0x77_ZA_OFFS(Data)								  ReadUInt(0x7D, (uint16_t *)Data)  //   Z accelerometer offset cancellation
 
 
 // Scan i2c buss for addresses Start Address,End Limit:

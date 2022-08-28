@@ -121,7 +121,7 @@ class Simple_MPU6050 : public Simple_Wire {
 
     //Startup Functions MPU
     Simple_MPU6050(uint8_t DMPMode = 6); // Constructor
-  //  Simple_MPU6050 & SetAddress(uint8_t address);
+    Simple_MPU6050 & SetAddress(uint8_t address);
     uint8_t CheckAddress();
     uint8_t TestConnection(int Stop = 1);
     Simple_MPU6050 & Set_DMP_Output_Rate(uint16_t value = 0x01); // 100Hz Default
@@ -203,6 +203,6 @@ class Simple_MPU6050 : public Simple_Wire {
 
 };
 
-
+extern TwoWire Wire;
 
 #endif

@@ -36,11 +36,11 @@
 #define RA_Y_FINE_GAIN_WRITE(Data)         		WriteByte(0x04, (uint8_t)Data)			//[7:0] Y_FINE_GAIN
 #define RA_Z_FINE_GAIN_WRITE(Data)         		WriteByte(0x05, (uint8_t)Data)			//[7:0] Z_FINE_GAIN
 //6050 Accelerometer Offsets
-#define A_OFFSET_WRITE_A_OFFS(Shift, Data)              WriteInt(0x06 + (Shift * 2), (uint16_t)Data)//
-#define A_OFFSET_H_WRITE_A_OFFS(Data)                   WriteInts(0x06, 6, (uint16_t *)Data)		//   X accelerometer offset cancellation
-#define XA_OFFSET_H_WRITE_XA_OFFS(Data)                 WriteInt(0x06, (uint16_t)Data)			//   X accelerometer offset cancellation
-#define YA_OFFSET_H_WRITE_YA_OFFS(Data)                 WriteInt(0x08, (uint16_t)Data)			//   Y accelerometer offset cancellation
-#define ZA_OFFSET_H_WRITE_ZA_OFFS(Data)                 WriteInt(0x0A,  (uint16_t)Data)			//   Z accelerometer offset cancellation
+#define A_OFFSET_WRITE_A_OFFS(Shift, Data)              WriteUInt(0x06 + (Shift * 2), (uint16_t)Data)//
+#define A_OFFSET_H_WRITE_A_OFFS(Data)                   WriteUInts(0x06, 6, (uint16_t *)Data)		//   X accelerometer offset cancellation
+#define XA_OFFSET_H_WRITE_XA_OFFS(Data)                 WriteUInt(0x06, (uint16_t)Data)			//   X accelerometer offset cancellation
+#define YA_OFFSET_H_WRITE_YA_OFFS(Data)                 WriteUInt(0x08, (uint16_t)Data)			//   Y accelerometer offset cancellation
+#define ZA_OFFSET_H_WRITE_ZA_OFFS(Data)                 WriteUInt(0x0A,  (uint16_t)Data)			//   Z accelerometer offset cancellation
 //9250 Self Test Accel
 //#define SELF_TEST_X_ACCEL_WRITE_XA_ST_DATA(Data)      WriteByte(0x0D, (uint8_t)Data)			//   self test output generated during manufacturing tests
 //#define SELF_TEST_Y_ACCEL_WRITE_YA_ST_DATA(Data)      WriteByte(0x0E, (uint8_t)Data)			//   self test output generated during manufacturing tests
@@ -53,11 +53,11 @@
 #define SELF_TEST_Z_WRITE_ZA_TEST(Data)                 WriteBit(0x0F, 3, 7, (uint8_t)Data)		//   self test output generated during manufacturing tests
 #define SELF_TEST_Z_WRITE_ZG_TEST(Data)                 WriteBit(0x0F, 5, 4, (uint8_t)Data)		//   self test output generated during manufacturing tests
 //Both
-#define XG_OFFSET_WRITE_OFFS_USR(Shift, Data)           WriteInts(0x13 + (Shift * 2), (uint16_t *)Data)		//   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define XG_OFFSET_H_WRITE_OFFS_USR(Data)                WriteInts(0x13, 6, (uint16_t *)Data)		//   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define XG_OFFSET_H_WRITE_X_OFFS_USR(Data)              WriteInt(0x13,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define YG_OFFSET_H_WRITE_Y_OFFS_USR(Data)              WriteInt(0x15,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
-#define ZG_OFFSET_H_WRITE_Z_OFFS_USR(Data)              WriteInt(0x17,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define XG_OFFSET_WRITE_OFFS_USR(Shift, Data)           WriteUInts(0x13 + (Shift * 2), (uint16_t *)Data)		//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define XG_OFFSET_H_WRITE_OFFS_USR(Data)                WriteUInts(0x13, 6, (uint16_t *)Data)		//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define XG_OFFSET_H_WRITE_X_OFFS_USR(Data)              WriteUInt(0x13,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define YG_OFFSET_H_WRITE_Y_OFFS_USR(Data)              WriteUInt(0x15,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
+#define ZG_OFFSET_H_WRITE_Z_OFFS_USR(Data)              WriteUInt(0x17,  (uint16_t)Data)			//   Remove DC bias from the gyro sensor Step 0.0305 dps
 
 #define SMPLRT_DIV_WRITE_SMPLRT_DIV(Data)               WriteByte(0x19, (uint8_t)Data)			//   Divides the internal sample rate  controls sensor data output rate, FIFO sample rate.   SAMPLE_RATE= Internal_Sample_Rate / (1 + SMPLRT_DIV)
 
@@ -293,10 +293,10 @@
 #define PWR_MGMT_2_WRITE_DIS_YG(Data)                   WriteBit(0x6C, 1, 2, (uint8_t)Data)		//   1  Y gyro is disabled 0  Y gyro is on
 #define PWR_MGMT_2_WRITE_DIS_ZG(Data)                   WriteBit(0x6C, 1, 1, (uint8_t)Data)		//   1  Z gyro is disabled 0  Z gyro is on
 
-#define BANK_SEL_WRITE(Data)                            WriteInt(0x6D,  (uint16_t)Data)			//   DMP Bank Select for Loading Image
-#define DMP_MEM_START_ADDR_WRITE(Data)                  WriteInt(0x6E,  (uint16_t)Data)			//   Not Used
+#define BANK_SEL_WRITE(Data)                            WriteUInt(0x6D,  (uint16_t)Data)			//   DMP Bank Select for Loading Image
+#define DMP_MEM_START_ADDR_WRITE(Data)                  WriteUInt(0x6E,  (uint16_t)Data)			//   Not Used
 #define DMP_MEM_WRITE(Length,Data)                      WriteBytes(0x6F,Length, (uint8_t *)Data) // DMP Image Loading Location
-#define PRGM_START_WRITE(Data)                          WriteInt(0x70,  (uint16_t)Data)			// Set program start address.
+#define PRGM_START_WRITE(Data)                          WriteUInt(0x70,  (uint16_t)Data)			// Set program start address.
 
 
 
@@ -305,10 +305,10 @@
 #define FIFO_WRITE(Data,PacketLength)                   WriteBytes(0x74, PacketLength, (uint8_t *)Data)  //   Read/Write command provides Read or Write operation for the FIFO.
 //6500 and 9250
 // Warning Offsets have a extra byte between them 
-#define X_OFFSET_WRITE_0x77_X_OFFS(Shift, Data)         WriteInt(0x77 + (Shift * 3),  (uint16_t)Data)			//   accelerometer offset cancellation
-#define XA_OFFSET_H_WRITE_0x77_XA_OFFS(Data)            WriteInt(0x77,  (uint16_t)Data)			//   X accelerometer offset cancellation
-#define YA_OFFSET_H_WRITE_0x77_YA_OFFS(Data)            WriteInt(0x7A,  (uint16_t)Data)			//   Y accelerometer offset cancellation
-#define ZA_OFFSET_H_WRITE_0x77_ZA_OFFS(Data)            WriteInt(0x7D,  (uint16_t)Data)			//   Z accelerometer offset cancellation
+#define X_OFFSET_WRITE_0x77_X_OFFS(Shift, Data)         WriteUInt(0x77 + (Shift * 3),  (uint16_t)Data)			//   accelerometer offset cancellation
+#define XA_OFFSET_H_WRITE_0x77_XA_OFFS(Data)            WriteUInt(0x77,  (uint16_t)Data)			//   X accelerometer offset cancellation
+#define YA_OFFSET_H_WRITE_0x77_YA_OFFS(Data)            WriteUInt(0x7A,  (uint16_t)Data)			//   Y accelerometer offset cancellation
+#define ZA_OFFSET_H_WRITE_0x77_ZA_OFFS(Data)            WriteUInt(0x7D,  (uint16_t)Data)			//   Z accelerometer offset cancellation
 
 
 
@@ -369,11 +369,11 @@
 #define SwapBytes(Data)										{uint8_t L = (uint8_t)((uint16_t)Data>>8); Data = (int16_t)((uint16_t)Data<<8) | (uint16_t)L;}  // Swaps the Byte order of the integer
 
 
-#define AKM_DATA_READ_RAW_COMPASS_SWAP(compass_addr, Data)	ReadInts(compass_addr,0x03,3,(uint16_t *)Data);SwapBytes(Data[0]);SwapBytes(Data[1]);SwapBytes(Data[2]) //Read 8Bytes of Data
-#define AKM_DATA_READ_RAW_COMPASS(compass_addr, Data)		ReadInts(compass_addr,0x03,3,(uint16_t *)Data) //Read 8Bytes of Data
-#define AKM_HX_READ_HX(compass_addr, Data)					ReadInt(compass_addr,0x03,(uint16_t *)Data);SwapBytes(Data[0])
-#define AKM_HY_READ_HY(compass_addr, Data)					ReadInt(compass_addr,0x05,(uint16_t *)Data);SwapBytes(Data[0])
-#define AKM_HZ_READ_HZ(compass_addr, Data)					ReadInt(compass_addr,0x07,(uint16_t *)Data);SwapBytes(Data[0])
+#define AKM_DATA_READ_RAW_COMPASS_SWAP(compass_addr, Data)	ReadUInts(compass_addr,0x03,3,(uint16_t *)Data);SwapBytes(Data[0]);SwapBytes(Data[1]);SwapBytes(Data[2]) //Read 8Bytes of Data
+#define AKM_DATA_READ_RAW_COMPASS(compass_addr, Data)		ReadUInts(compass_addr,0x03,3,(uint16_t *)Data) //Read 8Bytes of Data
+#define AKM_HX_READ_HX(compass_addr, Data)					ReadUInt(compass_addr,0x03,(uint16_t *)Data);SwapBytes(Data[0])
+#define AKM_HY_READ_HY(compass_addr, Data)					ReadUInt(compass_addr,0x05,(uint16_t *)Data);SwapBytes(Data[0])
+#define AKM_HZ_READ_HZ(compass_addr, Data)					ReadUInt(compass_addr,0x07,(uint16_t *)Data);SwapBytes(Data[0])
 
 #define AKM_ST2_READ_BYTE(compass_addr, Data)				ReadByte(compass_addr,0x09,(uint8_t *)Data)	// BIT 2, BIT 3, BIT 4
 #define AKM_ST2_READ_SENSOR_OVERFLOW(compass_addr, Data)	ReadBit(compass_addr,0x09,1,3,(uint8_t *)Data)	// BIT 3 HOFL In single measurement mode and self-test mode, magnetic sensor may overflow even though measurement data register is not saturated. In this case, measurement data is not correct and HOFL bit turns to 1. When next measurement stars, it returns to 0.

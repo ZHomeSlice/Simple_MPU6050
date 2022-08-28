@@ -48,7 +48,6 @@ volatile uint8_t _maxPackets;
 */
 #define Three_Axis_Low_Power_Quaternions 3
 #define Six_Axis_Low_Power_Quaternions 6  // Default
-
 Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
 
     _DMPMode = DMPMode;
@@ -68,12 +67,12 @@ Simple_MPU6050::Simple_MPU6050(uint8_t DMPMode) {
 /**
 @brief      Set Device Address
 */
-/*
+
 Simple_MPU6050 &  Simple_MPU6050::SetAddress(uint8_t address) {
 	devAddr = address;
 	return *this;
 }
-*/
+
 
 /**
 @brief      Returns Device Address
@@ -590,7 +589,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 	uint32_t eSum ;
 	Serial.write('>');
 	for (int i = 0; i < 3; i++) {
-		ReadInts(SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+		ReadUInts(SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
 		Reading = Data;
 		if(SaveAddress != 0x13){
 			BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
@@ -604,7 +603,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 		for (int c = 0; c < 100; c++) {// 100 PI Calculations
 			eSum = 0;
 			for (int i = 0; i < 3; i++) {
-				ReadInts( ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+				ReadUInts( ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
 				Reading = Data;
 				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;	//remove Gravity
 				Error = -Reading;
@@ -615,7 +614,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 					Data = round((PTerm + ITerm[i] ) / 8);		//Compute PID Output
 					Data = ((Data)&0xFFFE) |BitZero[i];			// Insert Bit0 Saved at beginning
 				} else Data = round((PTerm + ITerm[i] ) / 4);	//Compute PID Output
-				WriteInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+				WriteUInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
 			}
 			if((c == 99) && eSum > 1000){						// Error is still to great to continue
 				c = 0;
@@ -634,7 +633,7 @@ Simple_MPU6050 & Simple_MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uin
 				Data = round((ITerm[i] ) / 8);		//Compute PID Output
 				Data = ((Data)&0xFFFE) |BitZero[i];	// Insert Bit0 Saved at beginning
 			} else Data = round((ITerm[i]) / 4);
-			WriteInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+			WriteUInts( SaveAddress + (i * shift), 1, (uint16_t *)&Data);
 		}
 	}
 	SIGNAL_PATH_FULL_RESET_WRITE_RESET();
