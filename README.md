@@ -1,5 +1,7 @@
 # Simple_MPU6050
 
+Requires Simple_Wire Library also available here: https://github.com/ZHomeSlice/Simple_Wire
+
 Features:
   <br>--Works with <b>MPU6050, MPU6500, MPU9050, MPU9250</b> (Multiple MPU's on the same i2c buss can be mixed or matched. Auto detects)
   <br>--The MPU9050, MPU9250 gives access to the Magnetometer values.
