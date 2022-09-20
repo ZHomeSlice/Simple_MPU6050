@@ -45,6 +45,7 @@ void setup() {
   Serial.println(F("Start:"));
 
   // Setup the MPU
+  mpu.begin();
   mpu.SetAddress(MPU6050_DEFAULT_ADDRESS); //Sets the address of the MPU.
   Serial.println(F("\n\n The MPU6050 comes with no calibration values set.\n"
                    " This is what the default calibratin values are:\n"

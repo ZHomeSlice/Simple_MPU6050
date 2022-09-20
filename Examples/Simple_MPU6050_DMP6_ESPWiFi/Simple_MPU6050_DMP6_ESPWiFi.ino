@@ -96,6 +96,11 @@ void WiFi_setup() {
 //================================================================
 void mpu_setup()
 {
+  
+  mpu.begin();
+  int sdaPin = 0, 
+  int sclPin = 1
+  mpu.begin(sdaPin, sclPin);
   // Setup the MPU
   mpu.Set_DMP_Output_Rate_Hz(10);           // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds

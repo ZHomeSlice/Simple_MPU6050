@@ -62,6 +62,9 @@ void print_Values (int16_t *gyro, int16_t *accel, int32_t *quat) {
 void mpu_setup()
 {
   // Setup the MPU
+  int sdaPin = 0, 
+  int sclPin = 1
+  mpu.begin(sdaPin, sclPin);
   mpu.Set_DMP_Output_Rate_Hz(10);          // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
   //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minutes
