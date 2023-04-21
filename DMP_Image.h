@@ -199,7 +199,7 @@
 #define D_TILT2_H               (56)
 #define D_TILT2_L               (58)
 #define D_TILT3_H               (60)
-#define D_TILT3_L               (62)﻿
+#define D_TILT3_L               (62)
 
 
 
